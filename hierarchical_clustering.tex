@@ -169,8 +169,21 @@ obtain any desired number of clusters.
 \chapter{Distance and Similarity Measures}
 %==============================================================================
 
-Every hierarchical method begins from pairwise distances. Let
-$\vx=(x_1,\dots,x_n)$ and $\vy=(y_1,\dots,y_n)$ be two points in $\R^n$.
+Every hierarchical method begins from pairwise distances between the objects we
+wish to cluster. We represent each object as a single \emph{point} in
+$n$-dimensional space, where $n$ is the number of features (measurements)
+describing it. Let $\vx$ and $\vy$ be \emph{two such points} (two different
+objects). Being a point of $\R^n$, each one carries $n$ coordinates---one per
+feature---which we write with a subscript:
+\[
+\vx=(x_1,x_2,\dots,x_n),\qquad \vy=(y_1,y_2,\dots,y_n).
+\]
+Here $x_k$ is the $k$-th coordinate of the \emph{same} point $\vx$; it is
+\textbf{not} a separate point. In the familiar plane ($n=2$) this is just the
+usual abscissa/ordinate pair: $\vx=(x_1,x_2)$ is one point and
+$\vy=(y_1,y_2)$ is another, and the distance formulas below reduce to the
+schoolbook $\sqrt{(x_1-y_1)^2+(x_2-y_2)^2}$. For $n>2$ we simply have more
+coordinates per point.
 
 \section{Common Distance Measures}
 \begin{definition}[Euclidean distance ($L_2$)]
