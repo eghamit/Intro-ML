@@ -1,0 +1,649 @@
+%==============================================================================
+%  k-Means Clustering:
+%  Background, Theory, Types and Worked Examples
+%
+%  Self-contained lecture notes for an introductory Machine Learning course
+%  (B.Tech / M.Tech level).  Prerequisites: basic linear algebra and distances.
+%
+%  Compile with:  pdflatex k-means_clustering.tex   (run twice for refs)
+%  Requires a full TeX distribution (TeX Live / MiKTeX) with pgfplots + tikz.
+%==============================================================================
+\documentclass[11pt,a4paper]{report}
+
+%------------------------------- Page geometry --------------------------------
+\usepackage[a4paper,margin=1in]{geometry}
+
+%------------------------------- Mathematics ----------------------------------
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+
+%------------------------------- Tables & layout ------------------------------
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{caption}
+
+%------------------------------- Graphics -------------------------------------
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows.meta,calc}
+
+%------------------------------- Code listings --------------------------------
+\usepackage{listings}
+
+%------------------------------- Hyperlinks (load last) -----------------------
+\usepackage[colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,
+            urlcolor=blue!60!black,linktocpage=true]{hyperref}
+
+%------------------------------- Theorem-like envs ----------------------------
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{example}{Example}[chapter]
+\newtheorem{exercise}{Exercise}[chapter]
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+%------------------------------- Handy macros ---------------------------------
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\vmu}{\bm{\mu}}
+\newcommand{\C}{\mathcal{C}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+%------------------------------- Listing style --------------------------------
+\definecolor{codegreen}{rgb}{0.0,0.5,0.0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codeblue}{rgb}{0.1,0.1,0.6}
+\definecolor{backcol}{rgb}{0.97,0.97,0.95}
+\lstdefinestyle{python}{
+  backgroundcolor=\color{backcol},language=Python,
+  commentstyle=\color{codegreen},keywordstyle=\color{codeblue}\bfseries,
+  numberstyle=\tiny\color{codegray},stringstyle=\color{codegreen},
+  basicstyle=\ttfamily\footnotesize,breaklines=true,captionpos=b,
+  numbers=left,numbersep=6pt,showstringspaces=false,frame=single,
+  rulecolor=\color{codegray},tabsize=2}
+
+%==============================================================================
+\begin{document}
+
+%------------------------------- Title ----------------------------------------
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\Huge\bfseries $k$-Means Clustering\par}
+\vspace{0.6cm}
+{\Large Background, Theory, Types\\[2pt]
+and Worked Examples by Hand\par}
+\vspace{1.5cm}
+{\large A Self-Contained Set of Lecture Notes\par}
+\vspace{0.4cm}
+{\large Introduction to Machine Learning\par}
+\vspace{2.5cm}
+\begin{tabular}{c}
+\hline\\[-6pt]
+\textbf{Prerequisites:} Basic Linear Algebra and Distance Measures\\[4pt]
+\textbf{Level:} B.Tech / M.Tech\\[4pt]
+\hline
+\end{tabular}
+\vfill
+{\large \today\par}
+\end{titlepage}
+
+\tableofcontents
+\clearpage
+
+%==============================================================================
+\chapter{Background: Clustering in Machine Learning}
+%==============================================================================
+
+\section{Supervised vs.\ Unsupervised Learning}
+In \emph{supervised} learning every training example carries a label and we
+learn a mapping from inputs to labels. In \emph{unsupervised} learning we are
+given only the inputs
+\[
+\{\vx^{(1)},\vx^{(2)},\dots,\vx^{(m)}\},\qquad \vx^{(i)}\in\R^{n},
+\]
+with \textbf{no labels}, and must discover structure in the data.
+\emph{Clustering}---grouping similar objects together---is the most important
+unsupervised task, and \textbf{$k$-means} is by far the most widely used
+clustering algorithm.
+
+\section{What is Clustering?}
+\begin{definition}[Clustering]
+Clustering partitions a set of objects into groups (\emph{clusters}) so that
+objects within a cluster are similar (close together) and objects in different
+clusters are dissimilar (far apart).
+\end{definition}
+
+\section{Partitional vs.\ Hierarchical Clustering}
+\begin{center}
+\begin{tabular}{@{}p{6.4cm}p{6.4cm}@{}}
+\toprule
+\textbf{Partitional (flat)} & \textbf{Hierarchical}\\
+\midrule
+One partition into a fixed number $k$ of clusters. & A nested tree of clusters
+at all levels (a dendrogram).\\
+Must choose $k$ in advance. & $k$ need not be fixed in advance.\\
+Example: \textbf{$k$-means}, $k$-medoids. & Example: agglomerative, divisive.\\
+\bottomrule
+\end{tabular}
+\end{center}
+\textbf{$k$-means is the prototypical partitional method}: it divides the data
+into exactly $k$ non-overlapping clusters, each represented by its centre.
+
+\section{Where does $k$-Means Fit? Applications}
+$k$-means is unsupervised, partitional, and \emph{centroid-based} (each cluster
+is summarized by a mean vector). Typical uses:
+\begin{itemize}[nosep]
+  \item \textbf{Customer segmentation} by purchase behaviour.
+  \item \textbf{Image compression / colour quantization} (cluster pixel colours,
+        replace each by its centroid).
+  \item \textbf{Document grouping} and vector quantization.
+  \item \textbf{Feature learning} (cluster-based codebooks) and data
+        pre-processing.
+  \item \textbf{Anomaly detection} (points far from every centroid).
+\end{itemize}
+
+%==============================================================================
+\chapter{Prerequisites: Distance and Centroids}
+%==============================================================================
+
+Each object is a \emph{point} in $n$-dimensional space, $\vx=(x_1,\dots,x_n)$,
+where $n$ is the number of features. $k$-means needs two ingredients: a way to
+measure how far two points are, and a way to summarize a group of points.
+
+\section{Euclidean Distance}
+For two points $\va=(a_1,\dots,a_n)$ and $\vb=(b_1,\dots,b_n)$,
+\begin{equation}
+d(\va,\vb)=\norm{\va-\vb}=\sqrt{\sum_{k=1}^{n}(a_k-b_k)^2}.
+\label{eq:euclid}
+\end{equation}
+In the plane ($n=2$) this is the ordinary
+$\sqrt{(a_1-b_1)^2+(a_2-b_2)^2}$. Here $\va,\vb$ are two \emph{different points};
+$a_k$ is the $k$-th coordinate of the single point $\va$.
+
+\begin{remark}[Squared distance suffices for assignment]
+$k$-means assigns each point to its \emph{nearest} centroid. Because the square
+root is monotonic, $\argmin_j\norm{\vx-\vmu_j}=\argmin_j\norm{\vx-\vmu_j}^2$, so
+we may compare \emph{squared} distances and avoid square roots entirely. We do
+this in the worked examples.
+\end{remark}
+
+\section{Centroid (Mean) of a Cluster}
+\begin{definition}[Centroid]
+The centroid of a cluster $\C=\{\vx^{(1)},\dots,\vx^{(p)}\}$ is the coordinate-wise
+mean
+\begin{equation}
+\vmu=\frac{1}{p}\sum_{i=1}^{p}\vx^{(i)}
+    =\Bigl(\tfrac1p\textstyle\sum_i x^{(i)}_1,\ \dots,\ \tfrac1p\sum_i x^{(i)}_n\Bigr).
+\label{eq:centroid}
+\end{equation}
+\end{definition}
+The centroid is the point that \emph{minimizes} the sum of squared distances to
+the members of $\C$ (proved in Chapter~\ref{ch:theory}); this is precisely why
+$k$-means updates each centre to the mean.
+
+\begin{remark}[Feature scaling]
+Euclidean distance is dominated by large-range features. Standardize each
+feature (zero mean, unit variance) before running $k$-means so that no single
+feature dominates the clustering.
+\end{remark}
+
+%==============================================================================
+\chapter{Theory of $k$-Means}
+\label{ch:theory}
+%==============================================================================
+
+\section{The Objective Function (WCSS / Inertia)}
+$k$-means seeks $k$ centroids $\vmu_1,\dots,\vmu_k$ and an assignment of each
+point to one cluster that \emph{minimize the within-cluster sum of squares}
+(WCSS), also called the \emph{inertia} or distortion:
+\begin{equation}
+\boxed{\;
+J(\C_1,\dots,\C_k;\vmu_1,\dots,\vmu_k)
+=\sum_{j=1}^{k}\ \sum_{\vx\in\C_j}\norm{\vx-\vmu_j}^2 .
+\;}
+\label{eq:wcss}
+\end{equation}
+$J$ is the total squared distance from every point to the centre of its cluster.
+Small $J$ means tight, compact clusters. Minimizing $J$ exactly is NP-hard, so
+we use an efficient iterative heuristic---\emph{Lloyd's algorithm}---that is
+what everyone means by ``$k$-means''.
+
+\section{Lloyd's Algorithm}
+The algorithm alternates two steps that each \emph{decrease} $J$.
+
+\begin{center}
+\fbox{\parbox{0.92\textwidth}{
+\textbf{$k$-Means (Lloyd's Algorithm)}
+\begin{enumerate}[nosep,leftmargin=2.4em]
+  \item \textbf{Initialize.} Choose $k$ and pick $k$ initial centroids
+        $\vmu_1,\dots,\vmu_k$ (e.g.\ $k$ random data points).
+  \item \textbf{Assignment step.} Assign every point to the cluster of its
+        nearest centroid:
+        \[
+        \C_j=\bigl\{\vx : j=\argmin_{\ell}\ \norm{\vx-\vmu_\ell}^2\bigr\}.
+        \]
+  \item \textbf{Update step.} Recompute each centroid as the mean of the points
+        now assigned to it: $\displaystyle \vmu_j=\frac{1}{|\C_j|}\sum_{\vx\in\C_j}\vx$.
+  \item \textbf{Repeat} steps 2--3 until the assignments (equivalently the
+        centroids) stop changing.
+\end{enumerate}
+}}
+\end{center}
+
+\section{Why Each Step Decreases $J$ (Convergence)}
+Both steps minimize \eqref{eq:wcss} over one set of variables while holding the
+other fixed---this is \emph{coordinate descent}.
+\begin{itemize}[nosep]
+  \item \textbf{Assignment step} fixes the centroids and minimizes $J$ over the
+        assignments. Sending each point to its nearest centroid makes its
+        contribution $\norm{\vx-\vmu_j}^2$ as small as possible, so $J$ cannot
+        increase.
+  \item \textbf{Update step} fixes the assignments and minimizes $J$ over the
+        centroids. For a fixed cluster $\C_j$, the minimizer of
+        $\sum_{\vx\in\C_j}\norm{\vx-\vmu}^2$ is the mean:
+        \[
+        \frac{\partial}{\partial\vmu}\sum_{\vx\in\C_j}\norm{\vx-\vmu}^2
+        =-2\sum_{\vx\in\C_j}(\vx-\vmu)=\mathbf 0
+        \ \Longrightarrow\ \vmu=\frac{1}{|\C_j|}\sum_{\vx\in\C_j}\vx .
+        \]
+\end{itemize}
+Because $J$ never increases and there are only finitely many possible
+assignments, the algorithm \textbf{converges} in a finite number of iterations.
+
+\begin{remark}[Local, not global, optimum]
+$J$ is non-convex, so Lloyd's algorithm converges to a \emph{local} minimum that
+depends on the initialization. In practice one runs it several times with
+different seeds and keeps the clustering with the smallest $J$ (this is the
+\texttt{n\_init} parameter in libraries).
+\end{remark}
+
+\section{Complexity}
+Each iteration computes $m\times k$ distances in $\R^n$, costing
+$\mathcal{O}(mkn)$ time. With $t$ iterations the total is $\mathcal{O}(tmkn)$,
+which is \emph{linear} in the number of points---this scalability is the main
+reason for $k$-means's popularity.
+
+%==============================================================================
+\chapter{Types and Variants of $k$-Means}
+%==============================================================================
+
+\section{Common Variants}
+\begin{description}[leftmargin=0pt,itemsep=4pt]
+\item[\textbf{Lloyd's / standard $k$-means.}] The batch algorithm of
+Chapter~\ref{ch:theory}; centroids are means, distance is Euclidean.
+
+\item[\textbf{$k$-means\texttt{++}.}] A smarter \emph{initialization}: seeds are
+chosen one at a time with probability proportional to squared distance from the
+already-chosen seeds. This spreads the initial centres out, giving faster and
+more reliable convergence. It is the default initializer in most libraries.
+
+\item[\textbf{Mini-batch $k$-means.}] Updates centroids using small random
+batches of data instead of the whole dataset each iteration. Much faster on
+very large / streaming data, at a small cost in quality.
+
+\item[\textbf{$k$-medoids (PAM).}] Cluster centres are \emph{actual data points}
+(medoids) rather than means. More robust to outliers and works with any
+dissimilarity (not just Euclidean), but costlier.
+
+\item[\textbf{$k$-medians.}] Uses the median (and $L_1$/Manhattan distance)
+instead of the mean; more robust to outliers than $k$-means.
+
+\item[\textbf{Fuzzy $c$-means (soft $k$-means).}] Each point gets a
+\emph{membership degree} in every cluster (values in $[0,1]$ summing to one)
+rather than a hard single assignment.
+\end{description}
+
+\section{Choosing the Number of Clusters $k$}
+$k$ must be supplied. Two standard heuristics:
+\begin{itemize}[nosep]
+  \item \textbf{Elbow method.} Plot WCSS $J$ against $k$. $J$ always decreases
+        as $k$ grows, but the rate of decrease drops sharply at the ``right''
+        $k$, producing an elbow. Pick $k$ at the elbow
+        (worked in Chapter~\ref{ch:elbow}).
+  \item \textbf{Silhouette score.} For each point compare its average distance
+        to its own cluster ($a$) with the average distance to the nearest other
+        cluster ($b$): the silhouette is $\tfrac{b-a}{\max(a,b)}\in[-1,1]$.
+        Choose the $k$ that maximizes the mean silhouette.
+\end{itemize}
+
+%==============================================================================
+\chapter{Worked Example: $k$-Means by Hand}
+\label{ch:worked}
+%==============================================================================
+
+\section{The Data and Setup}
+We cluster six points in the plane with $k=2$.
+\begin{center}
+\begin{tabular}{@{}ccccccc@{}}
+\toprule
+Point & $P_1$ & $P_2$ & $P_3$ & $P_4$ & $P_5$ & $P_6$\\
+\midrule
+$(x,y)$ & $(1,1)$ & $(1,2)$ & $(2,2)$ & $(4,3)$ & $(5,4)$ & $(4,4)$\\
+\bottomrule
+\end{tabular}
+\end{center}
+To show the algorithm actually doing work, we deliberately pick a \emph{poor}
+initialization: both seeds inside the left group,
+\[
+\vmu_1=P_1=(1,1),\qquad \vmu_2=P_2=(1,2).
+\]
+We assign by \emph{squared} Euclidean distance
+$d^2=(x-\mu_x)^2+(y-\mu_y)^2$ (nearest centroid wins; ties go to $C_1$).
+
+\section{Iteration 1}
+\subsection*{Assignment (centroids $\vmu_1=(1,1),\ \vmu_2=(1,2)$)}
+\begin{center}
+\begin{tabular}{@{}cccc@{}}
+\toprule
+Point & $d^2$ to $\vmu_1$ & $d^2$ to $\vmu_2$ & Assign\\
+\midrule
+$P_1(1,1)$ & $0$  & $1$  & $C_1$\\
+$P_2(1,2)$ & $1$  & $0$  & $C_2$\\
+$P_3(2,2)$ & $2$  & $1$  & $C_2$\\
+$P_4(4,3)$ & $13$ & $10$ & $C_2$\\
+$P_5(5,4)$ & $25$ & $20$ & $C_2$\\
+$P_6(4,4)$ & $18$ & $13$ & $C_2$\\
+\bottomrule
+\end{tabular}
+\end{center}
+So $C_1=\{P_1\}$ and $C_2=\{P_2,P_3,P_4,P_5,P_6\}$.
+
+\subsection*{Update (new centroids = cluster means)}
+\[
+\vmu_1=(1,1),\qquad
+\vmu_2=\Bigl(\tfrac{1+2+4+5+4}{5},\tfrac{2+2+3+4+4}{5}\Bigr)
+      =\Bigl(\tfrac{16}{5},\tfrac{15}{5}\Bigr)=(3.2,\,3.0).
+\]
+The WCSS after this update is
+\[
+J=\underbrace{0}_{C_1}
+ +\underbrace{5.84+2.44+0.64+4.24+1.64}_{C_2\ \text{(squared dists to }(3.2,3))}
+ =14.8 .
+\]
+
+\section{Iteration 2}
+\subsection*{Assignment (centroids $\vmu_1=(1,1),\ \vmu_2=(3.2,3)$)}
+\begin{center}
+\begin{tabular}{@{}cccc@{}}
+\toprule
+Point & $d^2$ to $\vmu_1=(1,1)$ & $d^2$ to $\vmu_2=(3.2,3)$ & Assign\\
+\midrule
+$P_1(1,1)$ & $0$  & $2.2^2+2^2=8.84$   & $C_1$\\
+$P_2(1,2)$ & $1$  & $2.2^2+1^2=5.84$   & $C_1$\\
+$P_3(2,2)$ & $2$  & $1.2^2+1^2=2.44$   & $C_1$\\
+$P_4(4,3)$ & $13$ & $0.8^2+0^2=0.64$   & $C_2$\\
+$P_5(5,4)$ & $25$ & $1.8^2+1^2=4.24$   & $C_2$\\
+$P_6(4,4)$ & $18$ & $0.8^2+1^2=1.64$   & $C_2$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Now $P_2$ and $P_3$ have \textbf{switched} to $C_1$:
+$C_1=\{P_1,P_2,P_3\}$, $C_2=\{P_4,P_5,P_6\}$.
+
+\subsection*{Update}
+\[
+\vmu_1=\Bigl(\tfrac{1+1+2}{3},\tfrac{1+2+2}{3}\Bigr)=\Bigl(\tfrac43,\tfrac53\Bigr)
+      \approx(1.333,1.667),\qquad
+\vmu_2=\Bigl(\tfrac{4+5+4}{3},\tfrac{3+4+4}{3}\Bigr)=\Bigl(\tfrac{13}{3},\tfrac{11}{3}\Bigr)
+      \approx(4.333,3.667).
+\]
+The new WCSS is
+\[
+J=\tfrac43+\tfrac43=\tfrac83\approx 2.667,
+\]
+a large drop from $14.8$ (each cluster contributes $\tfrac43$; e.g.\ for $C_1$:
+$\tfrac59+\tfrac29+\tfrac59=\tfrac43$).
+
+\section{Iteration 3 --- Convergence Check}
+Re-running the assignment with $\vmu_1\approx(1.333,1.667)$ and
+$\vmu_2\approx(4.333,3.667)$ leaves every point with its \emph{nearest} centroid
+unchanged ($P_1,P_2,P_3\!\to\!C_1$; $P_4,P_5,P_6\!\to\!C_2$). Since no point
+changes cluster, the centroids do not move: the algorithm has
+\textbf{converged}. Final result:
+\[
+C_1=\{P_1,P_2,P_3\},\quad \vmu_1=(\tfrac43,\tfrac53);\qquad
+C_2=\{P_4,P_5,P_6\},\quad \vmu_2=(\tfrac{13}{3},\tfrac{11}{3});\qquad J^\star=\tfrac83 .
+\]
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=11cm,height=7.5cm,
+  xlabel={$x$},ylabel={$y$},
+  xmin=0,xmax=6,ymin=0,ymax=5,grid=both,
+  legend pos=north west,legend cell align=left]
+% cluster 1 points
+\addplot[only marks,mark=*,mark size=2.6pt,color=blue]
+  coordinates {(1,1)(1,2)(2,2)};
+\addlegendentry{$C_1=\{P_1,P_2,P_3\}$}
+% cluster 2 points
+\addplot[only marks,mark=square*,mark size=2.6pt,color=red!80!black]
+  coordinates {(4,3)(5,4)(4,4)};
+\addlegendentry{$C_2=\{P_4,P_5,P_6\}$}
+% centroids
+\addplot[only marks,mark=star,mark size=4.5pt,color=black]
+  coordinates {(1.3333,1.6667)(4.3333,3.6667)};
+\addlegendentry{centroids $\bm\mu_1,\bm\mu_2$}
+\end{axis}
+\end{tikzpicture}
+\caption{Converged $k$-means clustering ($k=2$). The two centroids (stars) sit
+at the mean of their assigned points; WCSS $=8/3$.}
+\label{fig:kmeans}
+\end{figure}
+
+\section{Summary of the Run}
+\begin{center}
+\begin{tabular}{@{}cccc@{}}
+\toprule
+Iteration & $C_1$ & $C_2$ & WCSS $J$\\
+\midrule
+1 & $\{P_1\}$ & $\{P_2,P_3,P_4,P_5,P_6\}$ & $14.800$\\
+2 & $\{P_1,P_2,P_3\}$ & $\{P_4,P_5,P_6\}$ & $2.667$\\
+3 & $\{P_1,P_2,P_3\}$ & $\{P_4,P_5,P_6\}$ & $2.667$ (converged)\\
+\bottomrule
+\end{tabular}
+\end{center}
+Even from a deliberately bad start, $k$-means recovered the natural two groups
+in a couple of iterations, with $J$ decreasing monotonically
+$14.8\to2.667\to2.667$, exactly as the theory guarantees.
+
+%==============================================================================
+\chapter{Worked Example: The Elbow Method}
+\label{ch:elbow}
+%==============================================================================
+
+Using the same six points, we run $k$-means for
+$k=1,2,3,4,5$ and record the (best) WCSS:
+\begin{center}
+\begin{tabular}{@{}cccccc@{}}
+\toprule
+$k$ & $1$ & $2$ & $3$ & $4$ & $5$\\
+\midrule
+WCSS $J$ & $22.17$ & $2.67$ & $1.83$ & $1.00$ & $0.50$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Going from $k=1$ to $k=2$ slashes $J$ from $22.17$ to $2.67$; every further
+increase buys only a small improvement. The curve therefore bends sharply at
+$k=2$---the \textbf{elbow}---which is the recommended number of clusters, in
+agreement with the two visible groups.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=11cm,height=6.5cm,
+  xlabel={number of clusters $k$},ylabel={WCSS $J$},
+  xmin=0.7,xmax=5.3,ymin=0,ymax=24,
+  xtick={1,2,3,4,5},grid=both,mark size=2.6pt]
+\addplot[thick,blue,mark=*]
+  coordinates {(1,22.17)(2,2.67)(3,1.83)(4,1.00)(5,0.50)};
+\node[anchor=west,font=\footnotesize] (el) at (axis cs:2.5,9) {elbow at $k=2$};
+\draw[->,thick,gray] (el.west) -- (axis cs:2.05,3.2);
+\end{axis}
+\end{tikzpicture}
+\caption{Elbow plot. WCSS drops steeply until $k=2$, then flattens; the elbow
+identifies $k=2$ as the appropriate number of clusters.}
+\label{fig:elbow}
+\end{figure}
+
+%==============================================================================
+\chapter{Pros, Cons, Comparison and Code}
+%==============================================================================
+
+\section{Advantages and Disadvantages}
+\begin{center}
+\begin{tabular}{@{}p{6.4cm}p{6.4cm}@{}}
+\toprule
+\textbf{Advantages} & \textbf{Disadvantages}\\
+\midrule
+Simple and fast; scales linearly, $\mathcal{O}(tmkn)$. & Must choose $k$ in
+advance.\\
+Easy to implement and interpret (centroids). & Converges only to a \emph{local}
+optimum; sensitive to initialization.\\
+Works well when clusters are compact and roughly spherical. & Assumes spherical,
+similar-size clusters; struggles with elongated or varied-density shapes.\\
+Guaranteed to converge. & Sensitive to outliers and to feature scaling.\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Comparison with Hierarchical Clustering}
+\begin{center}
+\begin{tabular}{@{}p{6.4cm}p{6.4cm}@{}}
+\toprule
+\textbf{$k$-Means} & \textbf{Hierarchical}\\
+\midrule
+$k$ fixed \emph{before} running. & $k$ chosen \emph{after} building the tree.\\
+Depends on random initial centroids. & Deterministic.\\
+$\mathcal{O}(tmkn)$; scales to large data. &
+$\mathcal{O}(m^2)$--$\mathcal{O}(m^3)$; small/medium data.\\
+Output: $k$ flat clusters + centroids. & Output: a nested dendrogram.\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Reproducing the Example in Python}
+\begin{lstlisting}[style=python,caption={$k$-means with scikit-learn.}]
+import numpy as np
+from sklearn.cluster import KMeans
+
+X = np.array([[1,1],[1,2],[2,2],[4,3],[5,4],[4,4]], dtype=float)
+
+km = KMeans(n_clusters=2, init='k-means++', n_init=10, random_state=0).fit(X)
+
+print("labels    :", km.labels_)            # e.g. [0 0 0 1 1 1]
+print("centroids :", km.cluster_centers_)   # ~[[1.333,1.667],[4.333,3.667]]
+print("WCSS (inertia):", km.inertia_)       # ~2.667
+
+# Elbow method: WCSS vs k
+for k in range(1, 6):
+    j = KMeans(n_clusters=k, n_init=10, random_state=0).fit(X).inertia_
+    print(f"k={k}: WCSS={j:.2f}")
+\end{lstlisting}
+The library reproduces the by-hand result: clusters
+$\{P_1,P_2,P_3\}$, $\{P_4,P_5,P_6\}$, centroids
+$(\tfrac43,\tfrac53)$ and $(\tfrac{13}{3},\tfrac{11}{3})$, and inertia $8/3$.
+
+%==============================================================================
+\chapter{Exercises}
+%==============================================================================
+
+\section{Solved Problems}
+
+\begin{example}[Nearest centroid]
+Assign $P=(3,3)$ to one of the centroids $\vmu_1=(1,1)$, $\vmu_2=(4,4)$.\\
+\textbf{Solution.} $d^2(P,\vmu_1)=2^2+2^2=8$, $d^2(P,\vmu_2)=1^2+1^2=2$. Since
+$2<8$, assign $P$ to cluster $2$.
+\end{example}
+
+\begin{example}[Centroid update]
+A cluster contains $(2,0),(4,2),(6,4)$. Find its new centroid.\\
+\textbf{Solution.}
+$\vmu=\bigl(\tfrac{2+4+6}{3},\tfrac{0+2+4}{3}\bigr)=(4,2).$
+\end{example}
+
+\begin{example}[WCSS of a cluster]
+Compute the within-cluster sum of squares of $\{(1,1),(1,2),(2,2)\}$ about its
+centroid.\\
+\textbf{Solution.} Centroid $=(\tfrac43,\tfrac53)$. Squared distances:
+$\tfrac59,\tfrac29,\tfrac59$; sum $=\tfrac{12}{9}=\tfrac43$.
+\end{example}
+
+\begin{example}[Effect of initialization]
+Why might two runs of $k$-means on the same data give different clusters?\\
+\textbf{Solution.} $J$ is non-convex; Lloyd's algorithm converges to a local
+minimum that depends on the random initial centroids. Different seeds can lead
+to different local minima---hence \texttt{n\_init} with the best-$J$ kept.
+\end{example}
+
+\section{Unsolved Problems}
+
+\begin{exercise}[One full iteration]
+Points $(1,1),(2,1),(4,3),(5,4)$, $k=2$, initial centroids $(1,1)$ and $(5,4)$.
+Perform one assignment and one update step; report the new centroids.
+\end{exercise}
+
+\begin{exercise}[Run to convergence]
+Continue Exercise~8.1 until convergence and compute the final WCSS.
+\end{exercise}
+
+\begin{exercise}[Elbow]
+For the dataset of Chapter~\ref{ch:worked}, verify by hand the WCSS values for
+$k=1$ (all points in one cluster) and $k=3$, and state which $k$ the elbow rule
+selects.
+\end{exercise}
+
+\begin{exercise}[Proof]
+Show that the mean minimizes $\sum_{\vx\in\C}\norm{\vx-\vmu}^2$ by setting the
+gradient with respect to $\vmu$ to zero.
+\end{exercise}
+
+\begin{exercise}[Squared vs Euclidean]
+Prove that assigning a point to the nearest centroid gives the same result
+whether one compares Euclidean distances or squared Euclidean distances.
+\end{exercise}
+
+\begin{exercise}[Conceptual]
+Give one dataset shape on which $k$-means fails badly (e.g.\ two concentric
+rings) and explain why, referring to the spherical-cluster assumption.
+\end{exercise}
+
+\begin{exercise}[$k$-medoids]
+State one advantage of $k$-medoids over $k$-means when the data contains
+outliers, and explain why using an actual data point as the centre helps.
+\end{exercise}
+
+%==============================================================================
+\appendix
+\chapter{Notation Summary}
+%==============================================================================
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Symbol & Meaning\\
+\midrule
+$m$ & number of data points\\
+$n$ & number of features (dimensions)\\
+$k$ & number of clusters (chosen in advance)\\
+$\vx^{(i)}\in\R^n$ & the $i$-th data point\\
+$\C_j$ & the $j$-th cluster; $|\C_j|$ its size\\
+$\vmu_j$ & centroid (mean) of cluster $\C_j$\\
+$d(\va,\vb)=\norm{\va-\vb}$ & Euclidean distance between two points\\
+$J$ & within-cluster sum of squares (WCSS / inertia)\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\end{document}
