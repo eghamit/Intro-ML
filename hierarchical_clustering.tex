@@ -1,0 +1,831 @@
+%==============================================================================
+%  Hierarchical Clustering:
+%  Background, Theory, Types and Worked Examples
+%
+%  Self-contained lecture notes for an introductory Machine Learning course
+%  (B.Tech / M.Tech level).  Prerequisites: basic linear algebra and distances.
+%
+%  Compile with:  pdflatex hierarchical_clustering.tex   (run twice for refs)
+%  Requires a full TeX distribution (TeX Live / MiKTeX) with pgfplots + tikz.
+%==============================================================================
+\documentclass[11pt,a4paper]{report}
+
+%------------------------------- Page geometry --------------------------------
+\usepackage[a4paper,margin=1in]{geometry}
+
+%------------------------------- Mathematics ----------------------------------
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+
+%------------------------------- Tables & layout ------------------------------
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{caption}
+
+%------------------------------- Graphics -------------------------------------
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows.meta,calc}
+
+%------------------------------- Code listings --------------------------------
+\usepackage{listings}
+
+%------------------------------- Hyperlinks (load last) -----------------------
+\usepackage[colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,
+            urlcolor=blue!60!black,linktocpage=true]{hyperref}
+
+%------------------------------- Theorem-like envs ----------------------------
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{example}{Example}[chapter]
+\newtheorem{exercise}{Exercise}[chapter]
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+%------------------------------- Handy macros ---------------------------------
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\vy}{\mathbf{y}}
+\newcommand{\C}{\mathcal{C}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+%------------------------------- Listing style --------------------------------
+\definecolor{codegreen}{rgb}{0.0,0.5,0.0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codeblue}{rgb}{0.1,0.1,0.6}
+\definecolor{backcol}{rgb}{0.97,0.97,0.95}
+\lstdefinestyle{python}{
+  backgroundcolor=\color{backcol},language=Python,
+  commentstyle=\color{codegreen},keywordstyle=\color{codeblue}\bfseries,
+  numberstyle=\tiny\color{codegray},stringstyle=\color{codegreen},
+  basicstyle=\ttfamily\footnotesize,breaklines=true,captionpos=b,
+  numbers=left,numbersep=6pt,showstringspaces=false,frame=single,
+  rulecolor=\color{codegray},tabsize=2}
+
+%------------------------------- Dendrogram helper ----------------------------
+% \dnode draws a horizontal merge bar joining two vertical stems.
+% arguments: (x1,y1)(x2,y2) merge-height  ->  merge at given height h
+\newcommand{\merge}[5]{% x1 y1 x2 y2 h
+  \draw[thick] (#1,#2) -- (#1,#5) -- (#3,#5) -- (#3,#4);
+}
+
+%==============================================================================
+\begin{document}
+
+%------------------------------- Title ----------------------------------------
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\Huge\bfseries Hierarchical Clustering\par}
+\vspace{0.6cm}
+{\Large Background, Theory, Types\\[2pt]
+and Worked Examples by Hand\par}
+\vspace{1.5cm}
+{\large A Self-Contained Set of Lecture Notes\par}
+\vspace{0.4cm}
+{\large Introduction to Machine Learning\par}
+\vspace{2.5cm}
+\begin{tabular}{c}
+\hline\\[-6pt]
+\textbf{Prerequisites:} Basic Linear Algebra and Distance Measures\\[4pt]
+\textbf{Level:} B.Tech / M.Tech\\[4pt]
+\hline
+\end{tabular}
+\vfill
+{\large \today\par}
+\end{titlepage}
+
+\tableofcontents
+\clearpage
+
+%==============================================================================
+\chapter{Background: Clustering in Machine Learning}
+%==============================================================================
+
+\section{Supervised vs.\ Unsupervised Learning}
+Recall that in \emph{supervised} learning every training example carries a
+label, and the goal is to learn a mapping from inputs to those labels
+(e.g.\ linear regression, classification). In \emph{unsupervised} learning we
+are given only the inputs
+\[
+\{\vx^{(1)},\vx^{(2)},\dots,\vx^{(m)}\},\qquad \vx^{(i)}\in\R^{n},
+\]
+with \textbf{no target values}. The aim is to discover hidden structure in the
+data. \emph{Clustering} is the most important unsupervised task.
+
+\section{What is Clustering?}
+\begin{definition}[Clustering]
+Clustering is the task of partitioning a set of objects into groups
+(\emph{clusters}) such that objects in the same cluster are \emph{similar} to
+one another and objects in different clusters are \emph{dissimilar}.
+\end{definition}
+Similarity is quantified by a \emph{distance} (or dissimilarity) measure: small
+distance $\Rightarrow$ high similarity. A good clustering therefore minimizes
+intra-cluster distance and maximizes inter-cluster distance.
+
+\section{Applications of Clustering}
+\begin{itemize}[nosep]
+  \item \textbf{Customer segmentation} --- grouping shoppers by behaviour.
+  \item \textbf{Document / topic grouping} --- organizing news or papers.
+  \item \textbf{Bioinformatics} --- grouping genes with similar expression;
+        building phylogenetic (evolutionary) trees.
+  \item \textbf{Image segmentation} --- grouping pixels into regions.
+  \item \textbf{Anomaly detection} --- points that join no cluster are outliers.
+  \item \textbf{Taxonomies} --- organizing species, products, or files into a
+        nested hierarchy.
+\end{itemize}
+
+\section{Partitional vs.\ Hierarchical Clustering}
+Clustering algorithms fall into two broad families.
+\begin{center}
+\begin{tabular}{@{}p{6.4cm}p{6.4cm}@{}}
+\toprule
+\textbf{Partitional (flat)} & \textbf{Hierarchical}\\
+\midrule
+Produces a single partition into $k$ clusters. & Produces a nested tree of
+clusters at all levels.\\
+$k$ must be chosen in advance. & $k$ need not be fixed beforehand.\\
+Example: $k$-means, $k$-medoids. & Example: agglomerative, divisive.\\
+Output: cluster assignments. & Output: a \emph{dendrogram}.\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+\textbf{Hierarchical clustering} is the subject of these notes. Its great
+advantages are that (i) it needs no pre-specified number of clusters, and
+(ii) it yields a rich tree (dendrogram) that can be ``cut'' at any level to
+obtain any desired number of clusters.
+
+%==============================================================================
+\chapter{Distance and Similarity Measures}
+%==============================================================================
+
+Every hierarchical method begins from pairwise distances. Let
+$\vx=(x_1,\dots,x_n)$ and $\vy=(y_1,\dots,y_n)$ be two points in $\R^n$.
+
+\section{Common Distance Measures}
+\begin{definition}[Euclidean distance ($L_2$)]
+\begin{equation}
+d(\vx,\vy)=\sqrt{\sum_{k=1}^{n}(x_k-y_k)^2}.
+\label{eq:euclid}
+\end{equation}
+\end{definition}
+\begin{definition}[Manhattan distance ($L_1$, city-block)]
+\[
+d(\vx,\vy)=\sum_{k=1}^{n}\lvert x_k-y_k\rvert .
+\]
+\end{definition}
+\begin{definition}[Minkowski distance ($L_p$)]
+\[
+d(\vx,\vy)=\Bigl(\sum_{k=1}^{n}\lvert x_k-y_k\rvert^{p}\Bigr)^{1/p},
+\]
+which gives Manhattan for $p=1$ and Euclidean for $p=2$.
+\end{definition}
+\begin{definition}[Cosine dissimilarity]
+\[
+d(\vx,\vy)=1-\frac{\vx^{\!\top}\vy}{\lVert\vx\rVert\,\lVert\vy\rVert},
+\]
+useful for text/high-dimensional data where direction matters more than
+magnitude.
+\end{definition}
+
+A valid distance (a \emph{metric}) satisfies non-negativity, symmetry
+$d(\vx,\vy)=d(\vy,\vx)$, identity $d(\vx,\vx)=0$, and the triangle inequality.
+
+\section{The Proximity (Distance) Matrix}
+For $m$ objects the pairwise distances are stored in a symmetric
+$m\times m$ \emph{proximity matrix} $\mathbf{D}$ with $D_{ij}=d(\vx^{(i)},\vx^{(j)})$
+and zero diagonal:
+\[
+\mathbf{D}=\begin{bmatrix}
+0 & D_{12} & \cdots & D_{1m}\\
+D_{12} & 0 & \cdots & D_{2m}\\
+\vdots & & \ddots & \vdots\\
+D_{1m} & D_{2m} & \cdots & 0
+\end{bmatrix}.
+\]
+Because $\mathbf D$ is symmetric, we only ever need its lower (or upper)
+triangle. \textbf{This matrix is the sole input to agglomerative hierarchical
+clustering}---the raw coordinates are not needed once $\mathbf D$ is formed.
+
+\begin{remark}[Feature scaling]
+Distances are dominated by large-range features. Standardizing each feature to
+zero mean and unit variance before computing $\mathbf D$ prevents any single
+feature from dominating.
+\end{remark}
+
+%==============================================================================
+\chapter{Hierarchical Clustering: Theory}
+\label{ch:theory}
+%==============================================================================
+
+\section{Core Idea}
+Hierarchical clustering builds a \emph{hierarchy} of clusters, represented as a
+binary tree called a \textbf{dendrogram}. Each leaf is a single object; each
+internal node is a cluster formed by merging its two children; the height of a
+node is the distance at which the merge happened.
+
+\section{The Dendrogram}
+A dendrogram encodes the entire clustering at every granularity simultaneously.
+Cutting it with a horizontal line at height $h$ severs all links above $h$ and
+leaves a specific number of clusters: a low cut yields many small clusters, a
+high cut yields few large clusters (Figure~\ref{fig:cut}).
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[yscale=0.55,xscale=1.0]
+% simple illustrative dendrogram
+\foreach \x/\l in {1/a,2/b,3/c,4/d,5/e} \node[below] at (\x,0){\l};
+\merge{1}{0}{2}{0}{2}          % a,b at 2
+\merge{4}{0}{5}{0}{3}          % d,e at 3
+\merge{1.5}{2}{3}{0}{4}        % (ab),c at 4
+\merge{2.25}{4}{4.5}{3}{6}     % (abc),(de) at 6
+% cut line
+\draw[red,dashed,thick] (0.3,5) -- (5.7,5) node[right]{\small cut at $h{=}5$};
+\draw[->] (-0.4,0)--(-0.4,7) node[above]{\scriptsize height};
+\foreach \y in {2,3,4,6} \draw (-0.5,\y)--(-0.3,\y) node[left]{\scriptsize \y};
+\end{tikzpicture}
+\caption{A dendrogram. The dashed red cut at $h=5$ produces two clusters:
+$\{a,b,c\}$ and $\{d,e\}$.}
+\label{fig:cut}
+\end{figure}
+
+\section{The Generic Agglomerative Algorithm}
+The \emph{agglomerative} (bottom-up) procedure is by far the most common.
+
+\begin{center}
+\fbox{\parbox{0.9\textwidth}{
+\textbf{Agglomerative Hierarchical Clustering}
+\begin{enumerate}[nosep,leftmargin=2.2em]
+  \item Start with each object as its own cluster ($m$ clusters).
+  \item Compute the proximity matrix $\mathbf D$ between all clusters.
+  \item Find the pair of clusters with the \emph{smallest} distance and
+        \textbf{merge} them into one.
+  \item \textbf{Update} $\mathbf D$: recompute distances from the new cluster
+        to all others using a chosen \emph{linkage} rule.
+  \item Repeat steps 3--4 until a single cluster remains.
+  \item Record every merge and its height to draw the dendrogram.
+\end{enumerate}
+}}
+\end{center}
+
+\noindent
+Steps 3--4 are repeated exactly $m-1$ times. The only design choice is the
+\emph{linkage rule} in step 4, which defines the distance between two
+\emph{clusters} (not just two points). Different linkages give different trees;
+they are the ``types'' studied next.
+
+%==============================================================================
+\chapter{Types of Hierarchical Clustering}
+\label{ch:types}
+%==============================================================================
+
+\section{Agglomerative vs.\ Divisive}
+\begin{center}
+\begin{tabular}{@{}p{6.4cm}p{6.4cm}@{}}
+\toprule
+\textbf{Agglomerative (AGNES, bottom-up)} & \textbf{Divisive (DIANA, top-down)}\\
+\midrule
+Start: every object is its own cluster. & Start: all objects in one cluster.\\
+Repeatedly \emph{merge} the two closest clusters. & Repeatedly \emph{split} the
+most heterogeneous cluster.\\
+$m-1$ merges. & Up to $m-1$ splits.\\
+Cheaper and far more common. & Expensive ($2^{m-1}$ ways to split a cluster);
+rarely used.\\
+\bottomrule
+\end{tabular}
+\end{center}
+The remaining chapters focus on the agglomerative family, whose ``types'' are
+distinguished by the linkage criterion.
+
+\section{Linkage Criteria}
+Let $\C_i$ and $\C_j$ be two clusters. The distance
+$d(\C_i,\C_j)$ between them can be defined in several ways.
+
+\begin{description}[leftmargin=0pt,itemsep=4pt]
+\item[\textbf{Single linkage (MIN / nearest neighbour).}]
+The distance is that of the \emph{closest} pair of points, one from each
+cluster:
+\begin{equation}
+d_{\text{single}}(\C_i,\C_j)=\min_{\vx\in\C_i,\ \vy\in\C_j} d(\vx,\vy).
+\label{eq:single}
+\end{equation}
+Tends to produce long, ``chained'' clusters; sensitive to noise bridges.
+
+\item[\textbf{Complete linkage (MAX / farthest neighbour).}]
+The distance is that of the \emph{farthest} pair:
+\begin{equation}
+d_{\text{complete}}(\C_i,\C_j)=\max_{\vx\in\C_i,\ \vy\in\C_j} d(\vx,\vy).
+\label{eq:complete}
+\end{equation}
+Produces compact, roughly spherical clusters; resists chaining.
+
+\item[\textbf{Average linkage (group average, UPGMA).}]
+The mean of all inter-cluster pairwise distances:
+\begin{equation}
+d_{\text{average}}(\C_i,\C_j)=\frac{1}{|\C_i|\,|\C_j|}
+   \sum_{\vx\in\C_i}\sum_{\vy\in\C_j} d(\vx,\vy).
+\label{eq:average}
+\end{equation}
+A compromise between single and complete linkage.
+
+\item[\textbf{Centroid linkage.}]
+The distance between the cluster centroids
+$\bm\mu_i,\bm\mu_j$: $\;d(\C_i,\C_j)=\lVert\bm\mu_i-\bm\mu_j\rVert$.
+
+\item[\textbf{Ward's method (minimum variance).}]
+Merge the pair whose union causes the smallest increase in total
+within-cluster sum of squares (variance). It tends to produce clusters of
+similar size and is very popular in practice.
+\end{description}
+
+\section{The Lance--Williams Update Formula}
+All of the above linkages can be updated \emph{without} revisiting the original
+points, using one recurrence. When clusters $\C_i$ and $\C_j$ merge into
+$\C_{ij}$, the distance to any other cluster $\C_k$ is
+\begin{equation}
+d(\C_{ij},\C_k)=\alpha_i\,d(\C_i,\C_k)+\alpha_j\,d(\C_j,\C_k)
+              +\beta\,d(\C_i,\C_j)+\gamma\,\lvert d(\C_i,\C_k)-d(\C_j,\C_k)\rvert .
+\label{eq:lw}
+\end{equation}
+Choosing the coefficients reproduces each linkage (with
+$n_i=|\C_i|$ etc.):
+\begin{center}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Linkage & $\alpha_i$ & $\alpha_j$ & $\beta$ & $\gamma$\\
+\midrule
+Single   & $\tfrac12$ & $\tfrac12$ & $0$ & $-\tfrac12$\\[2pt]
+Complete & $\tfrac12$ & $\tfrac12$ & $0$ & $+\tfrac12$\\[2pt]
+Average  & $\dfrac{n_i}{n_i+n_j}$ & $\dfrac{n_j}{n_i+n_j}$ & $0$ & $0$\\[6pt]
+Ward     & $\dfrac{n_i+n_k}{n_i+n_j+n_k}$ & $\dfrac{n_j+n_k}{n_i+n_j+n_k}$
+         & $\dfrac{-n_k}{n_i+n_j+n_k}$ & $0$\\
+\bottomrule
+\end{tabular}
+\end{center}
+For example, single linkage sets
+$d(\C_{ij},\C_k)=\tfrac12 d_{ik}+\tfrac12 d_{jk}-\tfrac12|d_{ik}-d_{jk}|
+=\min(d_{ik},d_{jk})$, recovering \eqref{eq:single}. This is exactly the
+``take the minimum'' shortcut we will use by hand.
+
+%==============================================================================
+\chapter{Worked Example 1: Single Linkage (by hand)}
+\label{ch:single}
+%==============================================================================
+
+\section{The Data}
+We are given five objects $A,B,C,D,E$ and the following symmetric proximity
+matrix (only the lower triangle is needed). These could be Euclidean distances
+between five cities, five gene profiles, etc.
+\begin{equation}
+\mathbf{D}^{(0)}=
+\begin{array}{c|ccccc}
+   & A & B & C & D & E\\ \hline
+A  & 0 & 9 & 3 & 6 & 11\\
+B  & 9 & 0 & 7 & 5 & 10\\
+C  & 3 & 7 & 0 & 9 & 2\\
+D  & 6 & 5 & 9 & 0 & 8\\
+E  & 11& 10& 2 & 8 & 0
+\end{array}
+\label{eq:D0}
+\end{equation}
+Under \textbf{single linkage} the distance between two clusters is the
+\emph{minimum} of the pairwise distances, so at each merge we replace the two
+merged rows/columns by their element-wise minimum.
+
+\section{Step 1 --- First Merge}
+Scan the matrix for the smallest off-diagonal entry. The minimum is
+$D_{CE}=2$. \textbf{Merge $C$ and $E$} into cluster $(CE)$ at height $2$.
+Update using $d\bigl((CE),X\bigr)=\min\{d(C,X),d(E,X)\}$:
+\[
+\begin{aligned}
+d((CE),A)&=\min(3,11)=3, &\quad d((CE),B)&=\min(7,10)=7,\\
+d((CE),D)&=\min(9,8)=8. &&
+\end{aligned}
+\]
+\begin{equation}
+\mathbf{D}^{(1)}=
+\begin{array}{c|cccc}
+    & A & B & D & (CE)\\ \hline
+A   & 0 & 9 & 6 & 3\\
+B   & 9 & 0 & 5 & 7\\
+D   & 6 & 5 & 0 & 8\\
+(CE)& 3 & 7 & 8 & 0
+\end{array}
+\end{equation}
+
+\section{Step 2 --- Second Merge}
+Smallest entry in $\mathbf D^{(1)}$ is $d(A,(CE))=3$. \textbf{Merge $A$ with
+$(CE)$} into $(ACE)$ at height $3$. Update by minima:
+\[
+d((ACE),B)=\min(9,7)=7,\qquad d((ACE),D)=\min(6,8)=6.
+\]
+\begin{equation}
+\mathbf{D}^{(2)}=
+\begin{array}{c|ccc}
+     & B & D & (ACE)\\ \hline
+B    & 0 & 5 & 7\\
+D    & 5 & 0 & 6\\
+(ACE)& 7 & 6 & 0
+\end{array}
+\end{equation}
+
+\section{Step 3 --- Third Merge}
+Smallest entry is $d(B,D)=5$. \textbf{Merge $B$ and $D$} into $(BD)$ at height
+$5$. Update:
+\[
+d((BD),(ACE))=\min\bigl(d(B,(ACE)),d(D,(ACE))\bigr)=\min(7,6)=6.
+\]
+\begin{equation}
+\mathbf{D}^{(3)}=
+\begin{array}{c|cc}
+     & (ACE) & (BD)\\ \hline
+(ACE)& 0 & 6\\
+(BD) & 6 & 0
+\end{array}
+\end{equation}
+
+\section{Step 4 --- Final Merge}
+Only two clusters remain; merge $(ACE)$ and $(BD)$ at height $6$ into the root
+$\{A,B,C,D,E\}$.
+
+\section{Merge Summary and Dendrogram}
+\begin{center}
+\begin{tabular}{@{}clcc@{}}
+\toprule
+Step & Clusters merged & Height & \# clusters after\\
+\midrule
+1 & $C,\;E$          & $2$ & 4\\
+2 & $A,\;(CE)$       & $3$ & 3\\
+3 & $B,\;D$          & $5$ & 2\\
+4 & $(ACE),\;(BD)$   & $6$ & 1\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[yscale=0.65,xscale=1.15]
+\foreach \x/\l in {1/A,2/C,3/E,4/B,5/D} \node[below] at (\x,0){\l};
+\merge{2}{0}{3}{0}{2}         % C,E at 2  -> center x=2.5
+\merge{1}{0}{2.5}{2}{3}       % A,(CE) at 3 -> center x=1.75
+\merge{4}{0}{5}{0}{5}         % B,D at 5  -> center x=4.5
+\merge{1.75}{3}{4.5}{5}{6}    % (ACE),(BD) at 6
+\draw[->] (0.2,0)--(0.2,7.2) node[above]{\scriptsize height};
+\foreach \y in {2,3,5,6} \draw (0.1,\y)--(0.3,\y) node[left]{\scriptsize \y};
+\end{tikzpicture}
+\caption{Single-linkage dendrogram. Note the ``chaining'': $A$ attaches to the
+$(CE)$ group early, then the two big groups join last.}
+\label{fig:singdend}
+\end{figure}
+
+\begin{remark}[Reading a cut]
+Cutting Figure~\ref{fig:singdend} just below height $6$ yields two clusters
+$\{A,C,E\}$ and $\{B,D\}$; cutting below $5$ yields three: $\{A,C,E\}$,
+$\{B\}$, $\{D\}$.
+\end{remark}
+
+%==============================================================================
+\chapter{Worked Example 2: Complete Linkage (by hand)}
+\label{ch:complete}
+%==============================================================================
+
+We repeat the procedure on the \emph{same} data \eqref{eq:D0}, but now with
+\textbf{complete linkage}, where cluster distance is the \emph{maximum} of the
+pairwise distances. The only change is that updates take the element-wise
+\emph{maximum}.
+
+\section{Step 1}
+Minimum entry is still $D_{CE}=2$: \textbf{merge $C,E$} at height $2$. Update by
+\emph{maxima}, $d((CE),X)=\max\{d(C,X),d(E,X)\}$:
+\[
+d((CE),A)=\max(3,11)=11,\quad d((CE),B)=\max(7,10)=10,\quad
+d((CE),D)=\max(9,8)=9.
+\]
+\begin{equation}
+\mathbf{D}^{(1)}=
+\begin{array}{c|cccc}
+    & A & B & D & (CE)\\ \hline
+A   & 0 & 9 & 6 & 11\\
+B   & 9 & 0 & 5 & 10\\
+D   & 6 & 5 & 0 & 9\\
+(CE)&11 &10 & 9 & 0
+\end{array}
+\end{equation}
+
+\section{Step 2}
+Smallest remaining entry is $d(B,D)=5$: \textbf{merge $B,D$} at height $5$.
+Update by maxima:
+\[
+d((BD),A)=\max(9,6)=9,\qquad d((BD),(CE))=\max(10,9)=10.
+\]
+\begin{equation}
+\mathbf{D}^{(2)}=
+\begin{array}{c|ccc}
+     & A & (CE) & (BD)\\ \hline
+A    & 0 & 11 & 9\\
+(CE) &11 & 0  & 10\\
+(BD) & 9 & 10 & 0
+\end{array}
+\end{equation}
+Notice that complete linkage merges $B,D$ \emph{second} here, whereas single
+linkage merged $A$ with $(CE)$ second---the trees already diverge.
+
+\section{Step 3}
+Smallest entry is $d(A,(BD))=9$: \textbf{merge $A$ with $(BD)$} into $(ABD)$ at
+height $9$. Update:
+\[
+d((ABD),(CE))=\max\bigl(d(A,(CE)),d((BD),(CE))\bigr)=\max(11,10)=11.
+\]
+\begin{equation}
+\mathbf{D}^{(3)}=
+\begin{array}{c|cc}
+     & (ABD) & (CE)\\ \hline
+(ABD)& 0 & 11\\
+(CE) &11 & 0
+\end{array}
+\end{equation}
+
+\section{Step 4}
+Merge the last two clusters $(ABD)$ and $(CE)$ at height $11$.
+
+\section{Merge Summary and Dendrogram}
+\begin{center}
+\begin{tabular}{@{}clcc@{}}
+\toprule
+Step & Clusters merged & Height & \# clusters after\\
+\midrule
+1 & $C,\;E$          & $2$  & 4\\
+2 & $B,\;D$          & $5$  & 3\\
+3 & $A,\;(BD)$       & $9$  & 2\\
+4 & $(ABD),\;(CE)$   & $11$ & 1\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[yscale=0.38,xscale=1.15]
+\foreach \x/\l in {1/C,2/E,3/A,4/B,5/D} \node[below] at (\x,0){\l};
+\merge{1}{0}{2}{0}{2}         % C,E at 2 -> x=1.5
+\merge{4}{0}{5}{0}{5}         % B,D at 5 -> x=4.5
+\merge{3}{0}{4.5}{5}{9}       % A,(BD) at 9 -> x=3.75
+\merge{1.5}{2}{3.75}{9}{11}   % (CE),(ABD) at 11
+\draw[->] (0.2,0)--(0.2,12.5) node[above]{\scriptsize height};
+\foreach \y in {2,5,9,11} \draw (0.1,\y)--(0.3,\y) node[left]{\scriptsize \y};
+\end{tikzpicture}
+\caption{Complete-linkage dendrogram on the same data. The merge heights are
+larger and the tree is more balanced/compact than the single-linkage tree.}
+\label{fig:compdend}
+\end{figure}
+
+%==============================================================================
+\chapter{Worked Example 3: Average Linkage (by hand)}
+\label{ch:average}
+%==============================================================================
+
+Average linkage uses the \emph{mean} of all pairwise inter-cluster distances,
+equation \eqref{eq:average}. When a cluster of size $|\C_i|$ meets a cluster of
+size $|\C_j|$ there are $|\C_i|\,|\C_j|$ pairs to average.
+
+\section{Steps}
+\textbf{Step 1.} Minimum is $D_{CE}=2$: merge $C,E$ (size 2) at height $2$.
+Average of the two singleton distances:
+\[
+d((CE),A)=\tfrac{3+11}{2}=7,\quad
+d((CE),B)=\tfrac{7+10}{2}=8.5,\quad
+d((CE),D)=\tfrac{9+8}{2}=8.5.
+\]
+\begin{equation}
+\mathbf{D}^{(1)}=
+\begin{array}{c|cccc}
+    & A & B & D & (CE)\\ \hline
+A   & 0 & 9 & 6 & 7\\
+B   & 9 & 0 & 5 & 8.5\\
+D   & 6 & 5 & 0 & 8.5\\
+(CE)& 7 &8.5&8.5& 0
+\end{array}
+\end{equation}
+
+\textbf{Step 2.} Minimum is $d(B,D)=5$: merge $B,D$ at height $5$.
+\[
+d((BD),A)=\tfrac{9+6}{2}=7.5,\qquad
+d((BD),(CE))=\frac{d_{BC}+d_{BE}+d_{DC}+d_{DE}}{4}
+=\frac{7+10+9+8}{4}=8.5 .
+\]
+\begin{equation}
+\mathbf{D}^{(2)}=
+\begin{array}{c|ccc}
+     & A & (CE) & (BD)\\ \hline
+A    & 0 & 7   & 7.5\\
+(CE) & 7 & 0   & 8.5\\
+(BD) &7.5& 8.5 & 0
+\end{array}
+\end{equation}
+
+\textbf{Step 3.} Minimum is $d(A,(CE))=7$: merge $A$ with $(CE)$ into $(ACE)$ at
+height $7$. Averaging over the $3\times2=6$ pairs between $\{A,C,E\}$ and
+$\{B,D\}$:
+\[
+d((ACE),(BD))=\frac{d_{AB}+d_{AD}+d_{CB}+d_{CD}+d_{EB}+d_{ED}}{6}
+=\frac{9+6+7+9+10+8}{6}=\frac{49}{6}\approx 8.17 .
+\]
+\textbf{Step 4.} Merge $(ACE)$ and $(BD)$ at height $\approx 8.17$.
+
+\section{Merge Summary}
+\begin{center}
+\begin{tabular}{@{}clc@{}}
+\toprule
+Step & Clusters merged & Height\\
+\midrule
+1 & $C,\;E$        & $2$\\
+2 & $B,\;D$        & $5$\\
+3 & $A,\;(CE)$     & $7$\\
+4 & $(ACE),\;(BD)$ & $49/6\approx8.17$\\
+\bottomrule
+\end{tabular}
+\end{center}
+The order of merges here matches complete linkage in its first two steps but
+matches single linkage in step~3 ($A$ joins $(CE)$)---illustrating how average
+linkage sits ``between'' the two extremes.
+
+%==============================================================================
+\chapter{Choosing Clusters, Pros \& Cons, and Code}
+%==============================================================================
+
+\section{Cutting the Dendrogram}
+To obtain a flat clustering, cut the dendrogram horizontally:
+\begin{itemize}[nosep]
+  \item Cut at a chosen height $h$: all links above $h$ are severed.
+  \item Or cut to obtain a desired number $k$ of clusters.
+  \item A common heuristic is to cut at the largest vertical ``gap''
+        (the biggest jump between successive merge heights), since a large gap
+        signals that further merging joins genuinely dissimilar groups.
+\end{itemize}
+For the single-linkage tree (Figure~\ref{fig:singdend}) the biggest gap is
+between heights $3$ and $5$, suggesting $k=2$: $\{A,C,E\}$ and $\{B,D\}$.
+
+\section{Advantages and Disadvantages}
+\begin{center}
+\begin{tabular}{@{}p{6.4cm}p{6.4cm}@{}}
+\toprule
+\textbf{Advantages} & \textbf{Disadvantages}\\
+\midrule
+No need to pre-specify $k$. & Time $\mathcal{O}(m^3)$ (naively), memory
+$\mathcal{O}(m^2)$; poor for very large $m$.\\
+Dendrogram gives clusters at all scales. & Merges are \emph{greedy} and
+irreversible---an early bad merge cannot be undone.\\
+Deterministic (no random initialization). & Sensitive to the choice of distance
+and linkage.\\
+Can capture non-spherical shapes (single linkage). & Single linkage suffers
+from chaining; sensitive to noise/outliers.\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Comparison with $k$-means}
+\begin{center}
+\begin{tabular}{@{}p{6.4cm}p{6.4cm}@{}}
+\toprule
+\textbf{Hierarchical} & \textbf{$k$-means}\\
+\midrule
+$k$ chosen \emph{after} building the tree. & $k$ fixed \emph{before} running.\\
+Deterministic. & Depends on random initial centroids.\\
+$\mathcal{O}(m^2)$--$\mathcal{O}(m^3)$; small/medium data. & $\mathcal{O}(kmt)$;
+scales to large data.\\
+Output: nested dendrogram. & Output: $k$ flat clusters.\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Reproducing the Example in Python}
+\begin{lstlisting}[style=python,caption={Agglomerative clustering with SciPy.}]
+import numpy as np
+from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
+from scipy.spatial.distance import squareform
+
+# Symmetric distance matrix for A,B,C,D,E (same as the notes)
+D = np.array([[ 0, 9, 3, 6,11],
+              [ 9, 0, 7, 5,10],
+              [ 3, 7, 0, 9, 2],
+              [ 6, 5, 9, 0, 8],
+              [11,10, 2, 8, 0]], dtype=float)
+
+condensed = squareform(D)                 # SciPy wants the condensed form
+Z = linkage(condensed, method='single')   # try 'complete', 'average', 'ward'
+print(Z)                                   # merge list: [idx1, idx2, height, size]
+
+labels = ['A','B','C','D','E']
+dendrogram(Z, labels=labels)               # plot the tree
+clusters = fcluster(Z, t=2, criterion='maxclust')   # cut into 2 clusters
+print(dict(zip(labels, clusters)))         # -> {A,C,E} vs {B,D}
+\end{lstlisting}
+With \texttt{method='single'} SciPy reports merge heights $2,3,5,6$---exactly
+the by-hand result of Chapter~\ref{ch:single}.
+
+%==============================================================================
+\chapter{Exercises}
+%==============================================================================
+
+\section{Solved Problems}
+
+\begin{example}[Euclidean proximity matrix]
+Compute the Euclidean distance between $P_1=(1,1)$ and $P_2=(4,5)$.\\
+\textbf{Solution.} $d=\sqrt{(4-1)^2+(5-1)^2}=\sqrt{9+16}=\sqrt{25}=5.$
+\end{example}
+
+\begin{example}[First merge]
+For the matrix \eqref{eq:D0}, which pair merges first and at what height under
+\emph{any} linkage?\\
+\textbf{Solution.} The very first merge only looks at the raw minimum entry,
+which is $D_{CE}=2$; so $C,E$ merge first at height $2$ regardless of linkage.
+\end{example}
+
+\begin{example}[Single vs complete update]
+Given $d(C,X)=3$ and $d(E,X)=11$, find $d((CE),X)$ under single and complete
+linkage.\\
+\textbf{Solution.} Single: $\min(3,11)=3$. Complete: $\max(3,11)=11$.
+\end{example}
+
+\begin{example}[Cutting for $k=3$]
+Using the complete-linkage dendrogram (Figure~\ref{fig:compdend}), list the
+three clusters obtained by cutting just below height $9$.\\
+\textbf{Solution.} The merge of $A$ with $(BD)$ happens \emph{at} height $9$,
+so a cut just below $9$ severs it along with everything above. The remaining
+clusters are $\{A\}$, $\{B,D\}$ and $\{C,E\}$ --- three clusters, as required.
+\end{example}
+
+\section{Unsolved Problems}
+
+\begin{exercise}[Build a proximity matrix]
+Given points $A(1,1),B(2,1),C(4,3),D(5,4)$ in $\R^2$, compute the full
+$4\times4$ Euclidean proximity matrix (round to two decimals).
+\end{exercise}
+
+\begin{exercise}[Single linkage by hand]
+Run agglomerative single-linkage clustering on your matrix from Exercise~8.1,
+list every merge with its height, and sketch the dendrogram.
+\end{exercise}
+
+\begin{exercise}[Complete linkage]
+Repeat Exercise~8.2 with complete linkage. Do the trees differ? Explain why.
+\end{exercise}
+
+\begin{exercise}[Average linkage]
+For the matrix \eqref{eq:D0}, verify by hand that the average-linkage merge
+between $(ACE)$ and $(BD)$ occurs at height $49/6$.
+\end{exercise}
+
+\begin{exercise}[Lance--Williams]
+Using the Lance--Williams coefficients for complete linkage
+($\alpha_i=\alpha_j=\tfrac12,\ \beta=0,\ \gamma=\tfrac12$), show that
+\eqref{eq:lw} reduces to $\max(d_{ik},d_{jk})$.
+\end{exercise}
+
+\begin{exercise}[Conceptual]
+Explain the ``chaining'' phenomenon of single linkage and give one dataset
+shape where it is an advantage and one where it is a drawback.
+\end{exercise}
+
+\begin{exercise}[Divisive]
+Describe, in pseudocode, a top-down divisive scheme that at each step splits a
+cluster by running $2$-means on it. What is its cost relative to agglomerative?
+\end{exercise}
+
+\begin{exercise}[Choosing $k$]
+Given merge heights $2,3,5,6$ (single linkage) and $2,5,9,11$ (complete
+linkage) on the same data, use the ``largest gap'' rule to recommend $k$ for
+each and comment on the difference.
+\end{exercise}
+
+%==============================================================================
+\appendix
+\chapter{Notation Summary}
+%==============================================================================
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Symbol & Meaning\\
+\midrule
+$m$ & number of objects to cluster\\
+$\vx^{(i)}\in\R^n$ & the $i$-th object (feature vector)\\
+$d(\vx,\vy)$ & distance between two points\\
+$\mathbf D$ & proximity (distance) matrix, $m\times m$\\
+$\C_i$ & the $i$-th cluster; $|\C_i|$ its size\\
+$d(\C_i,\C_j)$ & inter-cluster distance (linkage)\\
+$\bm\mu_i$ & centroid of cluster $\C_i$\\
+$\alpha_i,\alpha_j,\beta,\gamma$ & Lance--Williams coefficients\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\end{document}
