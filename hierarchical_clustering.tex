@@ -254,6 +254,48 @@ Hierarchical clustering builds a \emph{hierarchy} of clusters, represented as a
 binary tree called a \textbf{dendrogram}. Each leaf is a single object; each
 internal node is a cluster formed by merging its two children; the height of a
 node is the distance at which the merge happened.
+Figure~\ref{fig:anatomy} labels these four ingredients on a small example.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+   >=Latex,
+   dot/.style={circle,fill=black,inner sep=1.6pt},
+   callout/.style={font=\footnotesize,align=left,inner sep=2pt},
+   arr/.style={->,thick,gray}]
+% ----- leaves -----
+\foreach \x/\l in {1/p,2/q,3/r,4/s} \node[below=2pt] at (\x,0){$\l$};
+% ----- merge bars (via \merge{x1}{y1}{x2}{y2}{h}) -----
+\merge{1}{0}{2}{0}{2}       % p,q merge at height 2  (centre x=1.5)
+\merge{3}{0}{4}{0}{3}       % r,s merge at height 3  (centre x=3.5)
+\merge{1.5}{2}{3.5}{3}{5}   % root merge at height 5 (centre x=2.5)
+% mark the internal nodes
+\node[dot] at (1.5,2){};
+\node[dot] at (3.5,3){};
+\node[dot] at (2.5,5){};
+% ----- height axis with dashed guides -----
+\draw[->] (-0.4,0)--(-0.4,5.8) node[above]{\scriptsize height};
+\foreach \y in {2,3,5} \draw (-0.5,\y)--(-0.3,\y) node[left]{\scriptsize \y};
+\draw[gray!55,dashed] (-0.3,2)--(1.5,2);
+\draw[gray!55,dashed] (-0.3,3)--(3.5,3);
+\draw[gray!55,dashed] (-0.3,5)--(2.5,5);
+% ----- callouts -----
+\node[callout] (cLeaf) at (6.1,0){\textbf{1. Single object}\\a \emph{leaf} of the tree};
+\draw[arr] (cLeaf.west) to[bend left=8] (4.05,-0.15);
+\node[callout] (cNode) at (6.1,2){\textbf{2. Internal node}\\a merge of its two children};
+\draw[arr] (cNode.west) to[bend right=6] (1.6,2);
+\node[callout] (cClus) at (6.1,3.3){\textbf{3. Grouped cluster}\\$\{r,s\}$ formed by this merge};
+\draw[arr] (cClus.west) to[bend left=6] (3.55,3.03);
+\node[callout] (cH) at (6.1,5){\textbf{4. Height}\\$=$ distance at which\\the merge occurs};
+\draw[arr] (cH.west) to[bend left=6] (2.55,5);
+\end{tikzpicture}
+\caption{Anatomy of a dendrogram. The leaves $p,q,r,s$ are the
+\textbf{single objects}; each horizontal bar is an \textbf{internal node} that
+merges its two children into one \textbf{grouped cluster}; the vertical level of
+that bar---read off the left axis via the dashed guides---is its
+\textbf{height}, the distance at which the merge happened.}
+\label{fig:anatomy}
+\end{figure}
 
 \section{The Dendrogram}
 A dendrogram encodes the entire clustering at every granularity simultaneously.
