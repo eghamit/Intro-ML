@@ -38,7 +38,7 @@
 
 %------------------------------- Hyperlinks (load last) -----------------------
 \usepackage[colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,
-            urlcolor=blue!60!black,linktocpage=true]{hyperref}
+urlcolor=blue!60!black,linktocpage=true]{hyperref}
 
 %------------------------------- Theorem-like envs ----------------------------
 \theoremstyle{definition}
@@ -73,973 +73,991 @@
 \definecolor{backcol}{rgb}{0.97,0.97,0.95}
 
 \lstdefinestyle{common}{
-  backgroundcolor=\color{backcol},
-  commentstyle=\color{codegreen},
-  keywordstyle=\color{codeblue}\bfseries,
-  numberstyle=\tiny\color{codegray},
-  stringstyle=\color{codegreen},
-  basicstyle=\ttfamily\footnotesize,
-  breakatwhitespace=false,
-  breaklines=true,
-  captionpos=b,
-  keepspaces=true,
-  numbers=left,
-  numbersep=6pt,
-  showspaces=false,
-  showstringspaces=false,
-  showtabs=false,
-  frame=single,
-  rulecolor=\color{codegray},
-  tabsize=2
+	backgroundcolor=\color{backcol},
+	commentstyle=\color{codegreen},
+	keywordstyle=\color{codeblue}\bfseries,
+	numberstyle=\tiny\color{codegray},
+	stringstyle=\color{codegreen},
+	basicstyle=\ttfamily\footnotesize,
+	breakatwhitespace=false,
+	breaklines=true,
+	captionpos=b,
+	keepspaces=true,
+	numbers=left,
+	numbersep=6pt,
+	showspaces=false,
+	showstringspaces=false,
+	showtabs=false,
+	frame=single,
+	rulecolor=\color{codegray},
+	tabsize=2
 }
 \lstdefinestyle{matlab}{style=common,language=Matlab}
 \lstdefinestyle{python}{style=common,language=Python}
 
 %==============================================================================
 \begin{document}
-
-%------------------------------- Title ----------------------------------------
-\begin{titlepage}
-\centering
-\vspace*{2cm}
-{\Huge\bfseries Linear Regression\par}
-\vspace{0.6cm}
-{\Large Theory, Mathematical Foundations,\\[2pt]
-Closed-Form Solution and Gradient Descent\par}
-\vspace{1.5cm}
-{\large A Self-Contained Set of Lecture Notes\par}
-\vspace{0.4cm}
-{\large Introduction to Machine Learning\par}
-\vspace{2.5cm}
-\begin{tabular}{c}
-\hline\\[-6pt]
-\textbf{Prerequisites:} Basic Calculus and Linear Algebra\\[4pt]
-\textbf{Level:} B.Tech / M.Tech\\[4pt]
-\hline
-\end{tabular}
-\vfill
-{\large \today\par}
-\end{titlepage}
-
-\tableofcontents
-\clearpage
-
-%==============================================================================
-\chapter{Introduction to Machine Learning}
-%==============================================================================
-
-\section{What is Artificial Intelligence?}
-\emph{Artificial Intelligence} (AI) is the branch of computer science that
-studies how to build systems capable of performing tasks that normally require
-human intelligence---perception, reasoning, planning, language understanding
-and decision making. Classical AI encoded knowledge as explicit rules written
-by human experts. This works well in narrow, well-understood domains, but
-becomes brittle when the number of rules and exceptions explodes.
-
-\section{What is Machine Learning?}
-\emph{Machine Learning} (ML) is the sub-field of AI in which a system
-\emph{learns} the rules directly from data rather than having them
-hand-coded. Formally, following Tom Mitchell:
-
-\begin{quote}
-A computer program is said to learn from experience $E$ with respect to some
-class of tasks $T$ and performance measure $P$, if its performance at tasks in
-$T$, as measured by $P$, improves with experience $E$.
-\end{quote}
-
-For linear regression the ingredients are:
-\begin{itemize}[nosep]
-  \item $T$: predict a real-valued output from input features;
-  \item $E$: a dataset of past $(\text{input},\text{output})$ pairs;
-  \item $P$: a loss (error) function such as the mean squared error.
-\end{itemize}
-
-\section{Types of Machine Learning}
-
-\subsection{Supervised Learning}
-The training data consists of input--output pairs
-$\{(\vx^{(i)},y^{(i)})\}_{i=1}^{m}$, and the goal is to learn a function
-$h:\mathcal{X}\to\mathcal{Y}$ that predicts $y$ from $\vx$. When $y$ is
-continuous the problem is called \emph{regression}; when $y$ is a discrete
-label it is called \emph{classification}. \textbf{Linear regression is the
-canonical supervised regression algorithm.}
-
-\subsection{Unsupervised Learning}
-Only inputs $\{\vx^{(i)}\}$ are available (no labels). The goal is to discover
-structure---clusters, low-dimensional manifolds, density. Examples: $k$-means,
-principal component analysis.
-
-\subsection{Reinforcement Learning}
-An agent interacts with an environment, receives rewards, and learns a policy
-that maximizes cumulative reward over time. There is no fixed labelled dataset;
-feedback is evaluative and delayed.
-
-\section{Where does Linear Regression fit?}
-Linear regression is \emph{supervised}, solves a \emph{regression} task, and
-uses a \emph{parametric linear} model. Despite its simplicity it is the
-foundation for a large part of statistics and ML: logistic regression,
-generalized linear models, ridge/lasso regularization, and even the final
-layer of many neural networks are direct descendants.
-
-\section{Applications of Linear Regression}
-\begin{itemize}[nosep]
-  \item Predicting house prices from size, location and number of rooms.
-  \item Forecasting sales or demand from advertising spend.
-  \item Estimating a person's expenditure from income.
-  \item Modelling the relationship between temperature and energy consumption.
-  \item Calibrating sensors (mapping raw readings to physical quantities).
-\end{itemize}
-
-\section{Regression vs Classification}
-\begin{center}
-\begin{tabular}{@{}p{6.5cm}p{6.5cm}@{}}
-\toprule
-\textbf{Regression} & \textbf{Classification}\\
-\midrule
-Output is continuous ($y\in\R$).      & Output is discrete (a class label).\\
-Example: price, temperature.          & Example: spam / not-spam.\\
-Typical loss: squared error.          & Typical loss: cross-entropy.\\
-Metric: RMSE, $R^2$.                  & Metric: accuracy, F1.\\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\section{Assumptions of Linear Regression}
-The ordinary least-squares (OLS) model relies on the following assumptions.
-\begin{enumerate}[nosep]
-  \item \textbf{Linearity.} The expected value of $y$ is a linear function of
-        the parameters.
-  \item \textbf{Independence.} The observations (errors) are independent.
-  \item \textbf{Homoscedasticity.} The errors have constant variance
-        $\sigma^2$.
-  \item \textbf{Normality.} For inference, errors are (approximately) normally
-        distributed with zero mean.
-  \item \textbf{No perfect multicollinearity.} The feature matrix has full
-        column rank, so $\Xmat^{\!\top}\Xmat$ is invertible.
-\end{enumerate}
-
-%==============================================================================
-\chapter{Mathematical Background}
-%==============================================================================
-
-\section{Scalars, Vectors and Matrices}
-A \emph{scalar} is a single number, e.g.\ $a\in\R$. A \emph{vector} is an
-ordered list of numbers, written as a column
-\[
-\vx=\begin{bmatrix}x_1\\x_2\\\vdots\\x_n\end{bmatrix}\in\R^{n}.
-\]
-A \emph{matrix} is a rectangular array $\Xmat\in\R^{m\times n}$ with entries
-$X_{ij}$. Transposition swaps rows and columns: $(\Xmat^{\!\top})_{ij}=X_{ji}$.
-
-\section{Dataset Representation}
-A supervised dataset with $m$ examples and $n$ features is written
-$\{(\vx^{(i)},y^{(i)})\}_{i=1}^{m}$, where $\vx^{(i)}\in\R^{n}$ and
-$y^{(i)}\in\R$. The superscript $(i)$ indexes examples, the subscript $j$
-indexes features, so $x^{(i)}_j$ is the $j$-th feature of the $i$-th example.
-
-\subsection{Feature Matrix}
-Stacking all examples as rows and prepending a column of ones (for the
-intercept term) gives the \emph{design} or \emph{feature matrix}
-\begin{equation}
-\Xmat=
-\begin{bmatrix}
-1 & x^{(1)}_1 & \cdots & x^{(1)}_n\\
-1 & x^{(2)}_1 & \cdots & x^{(2)}_n\\
-\vdots & \vdots & & \vdots\\
-1 & x^{(m)}_1 & \cdots & x^{(m)}_n
-\end{bmatrix}\in\R^{m\times(n+1)}.
-\label{eq:designmatrix}
-\end{equation}
-
-\subsection{Target Vector}
-The outputs are collected into the \emph{target vector}
-\[
-\vy=\begin{bmatrix}y^{(1)}\\y^{(2)}\\\vdots\\y^{(m)}\end{bmatrix}\in\R^{m}.
-\]
-
-\section{Dot Product}
-For $\mathbf{a},\mathbf{b}\in\R^{n}$,
-\[
-\mathbf{a}^{\!\top}\mathbf{b}=\sum_{j=1}^{n}a_j b_j .
-\]
-Geometrically $\mathbf{a}^{\!\top}\mathbf{b}=\|\mathbf{a}\|\,\|\mathbf{b}\|\cos\vartheta$.
-
-\section{Matrix Multiplication}
-If $\mathbf{A}\in\R^{m\times k}$ and $\mathbf{B}\in\R^{k\times n}$ then
-$\mathbf{C}=\mathbf{A}\mathbf{B}\in\R^{m\times n}$ with
-$C_{ij}=\sum_{\ell=1}^{k}A_{i\ell}B_{\ell j}$. In particular, the prediction of
-a linear model for all examples at once is the matrix--vector product
-$\Xmat\vw$.
-
-\section{Descriptive Statistics}
-Let $x_1,\dots,x_m$ be a sample.
-
-\begin{definition}[Mean]
-\[
-\xbar=\frac1m\sum_{i=1}^{m}x_i .
-\]
-\end{definition}
-
-\begin{definition}[Variance]
-The (population) variance measures spread about the mean:
-\[
-\Var(x)=\frac1m\sum_{i=1}^{m}(x_i-\xbar)^2 .
-\]
-The unbiased sample variance divides by $m-1$ instead of $m$.
-\end{definition}
-
-\begin{definition}[Standard deviation]
-\[
-\sigma_x=\sqrt{\Var(x)} .
-\]
-\end{definition}
-
-\begin{definition}[Covariance]
-For paired data $(x_i,y_i)$,
-\[
-\Cov(x,y)=\frac1m\sum_{i=1}^{m}(x_i-\xbar)(y_i-\ybar).
-\]
-Covariance is positive when the two variables tend to increase together.
-\end{definition}
-
-\begin{definition}[Correlation coefficient]
-The Pearson correlation coefficient normalizes covariance to $[-1,1]$:
-\begin{equation}
-r=\frac{\Cov(x,y)}{\sigma_x\,\sigma_y}
- =\frac{\sum_{i}(x_i-\xbar)(y_i-\ybar)}
-        {\sqrt{\sum_{i}(x_i-\xbar)^2}\,\sqrt{\sum_{i}(y_i-\ybar)^2}}.
-\label{eq:corr}
-\end{equation}
-\end{definition}
-
-These five quantities reappear directly in the closed-form solution of simple
-linear regression (Chapter~\ref{ch:closedform}).
-
-%==============================================================================
-\chapter{Linear Regression Theory}
-%==============================================================================
-
-\section{Problem Formulation}
-Given training data $\{(\vx^{(i)},y^{(i)})\}_{i=1}^{m}$ we seek a function that
-predicts $y$ from $\vx$ as accurately as possible on unseen data.
-
-\paragraph{Training data.} The $m$ observed pairs used to fit the model.
-\paragraph{Features.} The inputs $\vx^{(i)}\in\R^{n}$ (also called predictors,
-covariates or independent variables).
-\paragraph{Target.} The output $y^{(i)}\in\R$ (also called the response or
-dependent variable).
-
-\section{The Linear Model}
-Linear regression assumes the target is (approximately) a linear function of
-the features plus an intercept:
-\begin{equation}
-\htheta(\vx)=\theta_0+\theta_1 x_1+\theta_2 x_2+\cdots+\theta_n x_n .
-\label{eq:multimodel}
-\end{equation}
-Introducing a dummy feature $x_0\equiv 1$ this becomes the compact dot product
-\begin{equation}
-\htheta(\vx)=\sum_{j=0}^{n}\theta_j x_j=\vw^{\!\top}\vx ,
-\qquad \vw=\begin{bmatrix}\theta_0\\\vdots\\\theta_n\end{bmatrix},\;
-\vx=\begin{bmatrix}1\\x_1\\\vdots\\x_n\end{bmatrix}.
-\label{eq:dotmodel}
-\end{equation}
-
-\subsection{Simple Linear Regression}
-The special case $n=1$ (a single feature) is \emph{simple linear regression}:
-\begin{equation}
-\boxed{\;\hat{y}=\htheta(x)=\theta_0+\theta_1 x\;}
-\label{eq:simplemodel}
-\end{equation}
-Here $\theta_0$ is the \emph{intercept} (value of $\hat y$ when $x=0$) and
-$\theta_1$ is the \emph{slope} (change in $\hat y$ per unit change in $x$).
-
-\paragraph{Hypothesis function and prediction.}
-The function $\htheta$ is the \emph{hypothesis}; evaluating it at a new input
-$x_\star$ yields the \emph{prediction} $\hat y_\star=\theta_0+\theta_1 x_\star$.
-Learning means choosing $\vw$ so that predictions match the targets.
-
-%==============================================================================
-\chapter{The Loss Function}
-%==============================================================================
-
-\section{Definition}
-To choose $\vw$ we need a measure of how wrong the predictions are. Define the
-error (residual) of example $i$ as $\htheta(x^{(i)})-y^{(i)}$. The \emph{mean
-squared error} cost function is
-\begin{equation}
-\boxed{\;J(\vw)=\frac{1}{2m}\sum_{i=1}^{m}\bigl(\htheta(x^{(i)})-y^{(i)}\bigr)^2\;}
-\label{eq:cost}
-\end{equation}
-
-\section{Why Square the Error?}
-\begin{itemize}[nosep]
-  \item \textbf{Sign removal.} Squaring makes positive and negative errors both
-        count as ``bad'' and prevents them from cancelling.
-  \item \textbf{Smoothness.} $(\cdot)^2$ is differentiable everywhere, unlike
-        $|\cdot|$, which lets us use calculus and gradient descent.
-  \item \textbf{Penalizing large errors.} Big mistakes are penalized
-        disproportionately, encouraging the fit to avoid gross outliers.
-  \item \textbf{Statistical justification.} Under Gaussian noise, minimizing
-        squared error is equivalent to maximum-likelihood estimation.
-\end{itemize}
-
-\section{Why Divide by $m$ (and by $2$)?}
-Dividing by $m$ turns the \emph{sum} of squared errors into a \emph{mean},
-making the cost independent of the dataset size so that learning rates transfer
-across datasets. The extra factor of $\tfrac12$ is a convenience: when we
-differentiate the square, the exponent $2$ cancels the $\tfrac12$, giving a
-cleaner gradient. Neither constant changes the location of the minimum:
-\[
-\argmin_{\vw} \tfrac{1}{2m}\textstyle\sum_i(\cdot)^2
-= \argmin_{\vw} \sum_i(\cdot)^2 .
-\]
-
-\section{Convexity of the Cost Function}
-\label{sec:convex}
-As a function of $\vw$, $J$ is a sum of squares of \emph{affine} functions of
-$\vw$, hence a quadratic form. Its Hessian (Chapter~\ref{ch:normaleq}) is
-\[
-\nabla^2 J(\vw)=\frac1m\Xmat^{\!\top}\Xmat ,
-\]
-which is positive semi-definite because for any vector $\mathbf{v}$,
-$\mathbf{v}^{\!\top}\Xmat^{\!\top}\Xmat\mathbf{v}=\|\Xmat\mathbf{v}\|^2\ge0$.
-Therefore $J$ is \textbf{convex}: any stationary point is a \emph{global}
-minimum, and there are no spurious local minima. If $\Xmat$ has full column
-rank the Hessian is positive definite and the minimizer is unique.
-
-\begin{figure}[ht]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-    width=10cm,height=7cm,
-    view={35}{30},
-    xlabel={$\theta_0$},ylabel={$\theta_1$},zlabel={$J(\bm\theta)$},
-    colormap/viridis, grid=both,
-    domain=-2:2,y domain=-2:2,samples=25,
-    title={Convex ``bowl'' cost surface}]
-\addplot3[surf,opacity=0.85] {0.5*(x*x + y*y) + 0.3*x*y};
-\end{axis}
-\end{tikzpicture}
-\caption{The mean-squared-error cost is a convex paraboloid in parameter
-space; gradient descent slides down to its single global minimum.}
-\label{fig:bowl}
-\end{figure}
-
-%==============================================================================
-\chapter{Closed-Form Solution (Simple Linear Regression)}
-\label{ch:closedform}
-%==============================================================================
-
-We derive the optimal $\theta_0,\theta_1$ for the single-feature model
-\eqref{eq:simplemodel} by minimizing the sum of squared errors
-\begin{equation}
-S(\theta_0,\theta_1)=\sum_{i=1}^{m}\bigl(y^{(i)}-\theta_0-\theta_1 x^{(i)}\bigr)^2 .
-\label{eq:SSE}
-\end{equation}
-(We minimize $S=2m\,J$; the constant does not affect the minimizer.) To keep
-the notation light, write $x_i,y_i$ for $x^{(i)},y^{(i)}$ and let all sums run
-$i=1,\dots,m$.
-
-\section{Setting the Partial Derivatives to Zero}
-At a minimum both partial derivatives vanish.
-
-\paragraph{With respect to $\theta_0$.}
-\begin{align}
-\frac{\partial S}{\partial\theta_0}
-&=\sum_i 2\bigl(y_i-\theta_0-\theta_1 x_i\bigr)(-1)
- =-2\sum_i\bigl(y_i-\theta_0-\theta_1 x_i\bigr).
-\end{align}
-Setting $\dfrac{\partial S}{\partial\theta_0}=0$ and dividing by $-2$:
-\begin{equation}
-\sum_i\bigl(y_i-\theta_0-\theta_1 x_i\bigr)=0
-\;\Longrightarrow\;
-\sum_i y_i = m\,\theta_0+\theta_1\sum_i x_i .
-\label{eq:normal1}
-\end{equation}
-
-\paragraph{With respect to $\theta_1$.}
-\begin{align}
-\frac{\partial S}{\partial\theta_1}
-&=\sum_i 2\bigl(y_i-\theta_0-\theta_1 x_i\bigr)(-x_i)
- =-2\sum_i x_i\bigl(y_i-\theta_0-\theta_1 x_i\bigr).
-\end{align}
-Setting $\dfrac{\partial S}{\partial\theta_1}=0$ and dividing by $-2$:
-\begin{equation}
-\sum_i x_i y_i = \theta_0\sum_i x_i+\theta_1\sum_i x_i^2 .
-\label{eq:normal2}
-\end{equation}
-
-Equations \eqref{eq:normal1} and \eqref{eq:normal2} are the \textbf{two normal
-equations} for simple linear regression.
-
-\section{Solving the Normal Equations}
-From \eqref{eq:normal1}, dividing by $m$ and using
-$\xbar=\frac1m\sum x_i,\ \ybar=\frac1m\sum y_i$:
-\begin{equation}
-\ybar=\theta_0+\theta_1\xbar
-\;\Longrightarrow\;
-\boxed{\;\theta_0=\ybar-\theta_1\xbar\;}
-\label{eq:theta0}
-\end{equation}
-This shows the fitted line always passes through the centroid
-$(\xbar,\ybar)$. Substitute \eqref{eq:theta0} into \eqref{eq:normal2}:
-\begin{align}
-\sum_i x_i y_i
-&=(\ybar-\theta_1\xbar)\sum_i x_i+\theta_1\sum_i x_i^2\\
-&=\ybar\sum_i x_i+\theta_1\Bigl(\sum_i x_i^2-\xbar\sum_i x_i\Bigr).
-\end{align}
-Hence
-\begin{equation}
-\theta_1=\frac{\sum_i x_i y_i-\ybar\sum_i x_i}
-              {\sum_i x_i^2-\xbar\sum_i x_i}.
-\label{eq:theta1raw}
-\end{equation}
-Using the algebraic identities
-$\sum_i x_i y_i-\ybar\sum_i x_i=\sum_i(x_i-\xbar)(y_i-\ybar)$ and
-$\sum_i x_i^2-\xbar\sum_i x_i=\sum_i(x_i-\xbar)^2$ (proved below), we obtain the
-standard form
-\begin{equation}
-\boxed{\;\theta_1
- =\frac{\sum_i(x_i-\xbar)(y_i-\ybar)}{\sum_i(x_i-\xbar)^2}
- =\frac{S_{xy}}{S_{xx}}\;}
-\label{eq:theta1}
-\end{equation}
-where $S_{xy}=\sum_i(x_i-\xbar)(y_i-\ybar)$ and
-$S_{xx}=\sum_i(x_i-\xbar)^2$.
-
-\begin{proof}[Proof of the two identities]
-Expand and use $\sum_i x_i=m\xbar,\ \sum_i y_i=m\ybar$:
-\begin{align*}
-\sum_i(x_i-\xbar)(y_i-\ybar)
-&=\sum_i x_i y_i-\ybar\sum_i x_i-\xbar\sum_i y_i+m\xbar\ybar\\
-&=\sum_i x_i y_i-\ybar(m\xbar)-\xbar(m\ybar)+m\xbar\ybar
- =\sum_i x_i y_i-m\xbar\ybar
- =\sum_i x_i y_i-\ybar\sum_i x_i .
-\end{align*}
-The second identity is the same computation with $y\equiv x$. \qedhere
-\end{proof}
-
-\section{Equivalent Forms via Covariance, Variance and Correlation}
-Dividing numerator and denominator of \eqref{eq:theta1} by $m$ converts the
-sums-of-squares into the statistics of Chapter~2:
-\begin{equation}
-\theta_1=\frac{\frac1m S_{xy}}{\frac1m S_{xx}}
-        =\frac{\Cov(x,y)}{\Var(x)} .
-\label{eq:theta1cov}
-\end{equation}
-Furthermore, using $r=\dfrac{\Cov(x,y)}{\sigma_x\sigma_y}$ and
-$\Var(x)=\sigma_x^2$,
-\begin{equation}
-\boxed{\;\theta_1=\frac{\Cov(x,y)}{\Var(x)}
-                =\frac{r\,\sigma_x\sigma_y}{\sigma_x^2}
-                =r\,\frac{\sigma_y}{\sigma_x}\;}
-\label{eq:theta1r}
-\end{equation}
-So the slope equals the correlation coefficient scaled by the ratio of standard
-deviations, and the intercept follows from \eqref{eq:theta0}. These are the
-formulas we will use for hand computation in Chapter~\ref{ch:cfexample}.
-
-%==============================================================================
-\chapter{Matrix Formulation}
-%==============================================================================
-
-We now treat the general multi-feature model in matrix notation, which yields a
-single elegant formula valid for any number of features.
-
-\section{Model in Matrix Form}
-With the design matrix $\Xmat\in\R^{m\times(n+1)}$ of \eqref{eq:designmatrix}
-(a leading column of ones) and parameter vector
-$\vw=[\theta_0,\theta_1,\dots,\theta_n]^{\!\top}$, the vector of all $m$
-predictions is
-\begin{equation}
-\hat{\vy}=\Xmat\vw .
-\label{eq:matpred}
-\end{equation}
-For the single-feature case,
-\[
-\Xmat=\begin{bmatrix}1&x_1\\1&x_2\\\vdots&\vdots\\1&x_m\end{bmatrix},\qquad
-\vw=\begin{bmatrix}\theta_0\\\theta_1\end{bmatrix},\qquad
-\hat{\vy}=\Xmat\vw=\begin{bmatrix}\theta_0+\theta_1 x_1\\\vdots\\\theta_0+\theta_1 x_m\end{bmatrix}.
-\]
-
-\section{Residual Vector and the Cost}
-The \emph{residual vector} collects all errors,
-\begin{equation}
-\mathbf{r}=\Xmat\vw-\vy
-=\begin{bmatrix}\htheta(x^{(1)})-y^{(1)}\\\vdots\\\htheta(x^{(m)})-y^{(m)}\end{bmatrix}.
-\label{eq:residual}
-\end{equation}
-The key observation is that the sum of squared errors is exactly the squared
-Euclidean norm of the residual vector, i.e.\ its dot product with itself:
-\begin{equation}
-\sum_{i=1}^{m}e_i^2
-=\sum_{i=1}^{m}\bigl(\htheta(x^{(i)})-y^{(i)}\bigr)^2
-=\mathbf{r}^{\!\top}\mathbf{r}
-=(\Xmat\vw-\vy)^{\!\top}(\Xmat\vw-\vy).
-\label{eq:sumtonorm}
-\end{equation}
-
-\begin{proof}[Why \eqref{eq:sumtonorm} holds --- no skipped steps]
-For \emph{any} vector $\mathbf{r}=[e_1,\dots,e_m]^{\!\top}\in\R^{m}$, the
-definition of matrix multiplication gives the dot product
-\[
-\mathbf{r}^{\!\top}\mathbf{r}
-=\begin{bmatrix}e_1&e_2&\cdots&e_m\end{bmatrix}
- \begin{bmatrix}e_1\\e_2\\\vdots\\e_m\end{bmatrix}
-=e_1e_1+e_2e_2+\cdots+e_me_m
-=\sum_{i=1}^{m}e_i^2 .
-\]
-Now substitute the specific residual $\mathbf{r}=\Xmat\vw-\vy$ from
-\eqref{eq:residual}; its $i$-th component is exactly
-$e_i=\htheta(x^{(i)})-y^{(i)}$, which proves \eqref{eq:sumtonorm}.
-\end{proof}
-
-Therefore the cost function \eqref{eq:cost} in matrix form is
-\begin{equation}
-\boxed{\;J(\vw)=\frac{1}{2m}(\Xmat\vw-\vy)^{\!\top}(\Xmat\vw-\vy)\;}
-\label{eq:matcost}
-\end{equation}
-
-%==============================================================================
-\chapter{Derivation of the Normal Equation}
-\label{ch:normaleq}
-%==============================================================================
-
-We minimize \eqref{eq:matcost} directly with matrix calculus. Because a
-constant scaling does not move the minimizer, drop the $\tfrac1m$ and work with
-$J(\vw)=\tfrac12(\Xmat\vw-\vy)^{\!\top}(\Xmat\vw-\vy)$.
-
-\section{Expanding the Quadratic Form}
-Let $\mathbf{r}=\Xmat\vw-\vy$. Then
-\begin{align}
-2J(\vw)&=(\Xmat\vw-\vy)^{\!\top}(\Xmat\vw-\vy)\notag\\
-&=(\Xmat\vw)^{\!\top}(\Xmat\vw)
- -(\Xmat\vw)^{\!\top}\vy
- -\vy^{\!\top}(\Xmat\vw)
- +\vy^{\!\top}\vy .
-\label{eq:expand1}
-\end{align}
-Using $(\Xmat\vw)^{\!\top}=\vw^{\!\top}\Xmat^{\!\top}$ and noting that each term
-is a $1\times1$ scalar (so it equals its own transpose), the two cross terms
-are identical:
-\[
-(\Xmat\vw)^{\!\top}\vy=\vw^{\!\top}\Xmat^{\!\top}\vy,\qquad
-\vy^{\!\top}(\Xmat\vw)=\bigl(\vw^{\!\top}\Xmat^{\!\top}\vy\bigr)^{\!\top}
-                      =\vw^{\!\top}\Xmat^{\!\top}\vy .
-\]
-Hence \eqref{eq:expand1} collapses to
-\begin{equation}
-2J(\vw)=\vw^{\!\top}\Xmat^{\!\top}\Xmat\vw
-        -2\,\vw^{\!\top}\Xmat^{\!\top}\vy
-        +\vy^{\!\top}\vy .
-\label{eq:expand2}
-\end{equation}
-
-\section{Matrix Calculus Rules Used}
-We use two standard vector-derivative identities. For constant vector
-$\mathbf{b}$ and constant symmetric matrix $\mathbf{A}=\mathbf{A}^{\!\top}$,
-\begin{equation}
-\frac{\partial}{\partial\vw}\bigl(\vw^{\!\top}\mathbf{b}\bigr)=\mathbf{b},
-\qquad
-\frac{\partial}{\partial\vw}\bigl(\vw^{\!\top}\mathbf{A}\vw\bigr)=2\mathbf{A}\vw .
-\label{eq:matcalc}
-\end{equation}
-
-\begin{proof}[Sketch of the second identity]
-Write $f(\vw)=\vw^{\!\top}\mathbf{A}\vw=\sum_{p}\sum_{q}\theta_p A_{pq}\theta_q$.
-Differentiate with respect to a single component $\theta_k$:
-\[
-\frac{\partial f}{\partial\theta_k}
-=\sum_q A_{kq}\theta_q+\sum_p \theta_p A_{pk}
-=(\mathbf{A}\vw)_k+(\mathbf{A}^{\!\top}\vw)_k .
-\]
-Stacking over $k$ gives $\nabla f=(\mathbf{A}+\mathbf{A}^{\!\top})\vw$, which
-equals $2\mathbf{A}\vw$ when $\mathbf{A}$ is symmetric. Here
-$\mathbf{A}=\Xmat^{\!\top}\Xmat$ is symmetric since
-$(\Xmat^{\!\top}\Xmat)^{\!\top}=\Xmat^{\!\top}\Xmat$.
-\end{proof}
-
-\section{Differentiating and Solving}
-Apply \eqref{eq:matcalc} term-by-term to \eqref{eq:expand2} (the constant
-$\vy^{\!\top}\vy$ has zero derivative):
-\begin{equation}
-\frac{\partial (2J)}{\partial\vw}
-=2\,\Xmat^{\!\top}\Xmat\vw-2\,\Xmat^{\!\top}\vy .
-\end{equation}
-Setting the gradient to zero,
-\begin{equation}
-\Xmat^{\!\top}\Xmat\vw-\Xmat^{\!\top}\vy=\mathbf{0}
-\;\Longrightarrow\;
-\boxed{\;\normeq\;}
-\label{eq:normaleq}
-\end{equation}
-which is the celebrated \textbf{normal equation}. If $\Xmat^{\!\top}\Xmat$ is
-invertible (full column rank, no perfect multicollinearity),
-\begin{equation}
-\boxed{\;\vw=(\Xmat^{\!\top}\Xmat)^{-1}\Xmat^{\!\top}\vy\;}
-\label{eq:normalsol}
-\end{equation}
-Because $J$ is convex (Section~\ref{sec:convex}), this stationary point is the
-unique global minimizer.
-
-\begin{remark}
-Equation \eqref{eq:normaleq} for the single-feature design matrix reproduces
-exactly the two scalar normal equations \eqref{eq:normal1}--\eqref{eq:normal2}:
-carrying out $\Xmat^{\!\top}\Xmat$ and $\Xmat^{\!\top}\vy$ gives
-\[
-\Xmat^{\!\top}\Xmat=\begin{bmatrix}m&\sum x_i\\[2pt]\sum x_i&\sum x_i^2\end{bmatrix},
-\qquad
-\Xmat^{\!\top}\vy=\begin{bmatrix}\sum y_i\\[2pt]\sum x_i y_i\end{bmatrix}.
-\]
-\end{remark}
-
-%==============================================================================
-\chapter{Gradient Descent}
-%==============================================================================
-
-\section{Why Iterative Optimization?}
-The closed form \eqref{eq:normalsol} requires inverting the
-$(n+1)\times(n+1)$ matrix $\Xmat^{\!\top}\Xmat$, which costs
-$\mathcal{O}(n^3)$ and needs the full matrix in memory. When the number of
-features $n$ (or examples $m$) is very large this becomes impractical.
-\emph{Gradient descent} avoids matrix inversion by iteratively stepping
-downhill on the cost surface (Figure~\ref{fig:bowl}).
-
-\section{The Gradient}
-The gradient of the cost \eqref{eq:cost} points in the direction of steepest
-increase; we move in the opposite direction. Differentiating $J$ with scalar
-calculus, exactly as in Chapter~\ref{ch:closedform} but keeping the $\tfrac1m$:
-\begin{align}
-\frac{\partial J}{\partial\theta_0}
-&=\frac1m\sum_{i=1}^{m}\bigl(\htheta(x^{(i)})-y^{(i)}\bigr),
-\label{eq:grad0}\\[4pt]
-\frac{\partial J}{\partial\theta_1}
-&=\frac1m\sum_{i=1}^{m}\bigl(\htheta(x^{(i)})-y^{(i)}\bigr)\,x^{(i)} .
-\label{eq:grad1}
-\end{align}
-For the general model the compact vector form is
-$\nabla J(\vw)=\frac1m\Xmat^{\!\top}(\Xmat\vw-\vy)$.
-
-\section{Update Equations}
-Starting from an initial guess, repeat until convergence (simultaneously
-updating all parameters):
-\begin{equation}
-\boxed{\;
-\begin{aligned}
-\theta_0 &:= \theta_0-\alpha\,\frac1m\sum_{i=1}^{m}\bigl(\htheta(x^{(i)})-y^{(i)}\bigr),\\[3pt]
-\theta_1 &:= \theta_1-\alpha\,\frac1m\sum_{i=1}^{m}\bigl(\htheta(x^{(i)})-y^{(i)}\bigr)\,x^{(i)},
-\end{aligned}\;}
-\label{eq:gdupdate}
-\end{equation}
-or, in vector form, $\vw:=\vw-\alpha\,\nabla J(\vw)$. The scalar $\alpha>0$ is
-the \emph{learning rate}.
-
-\section{Choice of Learning Rate}
-\begin{itemize}[nosep]
-  \item If $\alpha$ is \textbf{too small}, convergence is very slow.
-  \item If $\alpha$ is \textbf{too large}, the updates overshoot and $J$ may
-        oscillate or diverge.
-  \item A good practice is to plot $J$ versus iteration: it should decrease
-        smoothly and monotonically.
-  \item \textbf{Feature scaling} (standardizing each feature to zero mean and
-        unit variance) makes the bowl of Figure~\ref{fig:bowl} more circular
-        and dramatically speeds up convergence.
-\end{itemize}
-
-\section{Convex Optimization Guarantee}
-Because $J$ is convex, gradient descent with a sufficiently small constant
-$\alpha$ is guaranteed to converge to the \emph{global} minimum---the very same
-solution given by the normal equation \eqref{eq:normalsol}.
-
-%==============================================================================
-\chapter{Complete Worked Example: Closed Form}
-\label{ch:cfexample}
-%==============================================================================
-
-\section{The Dataset}
-Consider a tiny house-price dataset: $x$ is the size (in thousands of square
-feet) and $y$ is the price (in suitable monetary units). There are $m=5$
-examples.
-\begin{center}
-\begin{tabular}{@{}ccccccc@{}}
-\toprule
-$x$ (size) & 1 & 2 & 3 & 4 & 5 & $\sum=15$\\
-$y$ (price) & 1 & 3 & 2 & 5 & 4 & $\sum=15$\\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\section{Step 1 --- Means}
-\[
-\xbar=\frac{1+2+3+4+5}{5}=\frac{15}{5}=3,\qquad
-\ybar=\frac{1+3+2+5+4}{5}=\frac{15}{5}=3 .
-\]
-
-\section{Step 2 --- Deviations, Covariance and Variance}
-\begin{center}
-\begin{tabular}{@{}ccccc@{}}
-\toprule
-$x_i$ & $y_i$ & $x_i-\xbar$ & $y_i-\ybar$ & $(x_i-\xbar)(y_i-\ybar)$ \\
-\midrule
-1 & 1 & $-2$ & $-2$ & $4$ \\
-2 & 3 & $-1$ & $ 0$ & $0$ \\
-3 & 2 & $ 0$ & $-1$ & $0$ \\
-4 & 5 & $ 1$ & $ 2$ & $2$ \\
-5 & 4 & $ 2$ & $ 1$ & $2$ \\
-\midrule
-\multicolumn{4}{r}{$S_{xy}=\sum(x_i-\xbar)(y_i-\ybar)=$} & $8$ \\
-\bottomrule
-\end{tabular}
-\end{center}
-Similarly
-\[
-S_{xx}=\sum(x_i-\xbar)^2=4+1+0+1+4=10,\qquad
-S_{yy}=\sum(y_i-\ybar)^2=4+0+1+4+1=10 .
-\]
-Hence
-\[
-\Cov(x,y)=\tfrac{S_{xy}}{m}=\tfrac{8}{5}=1.6,\qquad
-\Var(x)=\tfrac{S_{xx}}{m}=\tfrac{10}{5}=2,\qquad
-\sigma_x=\sigma_y=\sqrt{2}\approx1.414 .
-\]
-
-\section{Step 3 --- Slope and Intercept}
-Using \eqref{eq:theta1}/\eqref{eq:theta1cov},
-\[
-\theta_1=\frac{S_{xy}}{S_{xx}}=\frac{8}{10}=0.8
-        =\frac{\Cov(x,y)}{\Var(x)}=\frac{1.6}{2}=0.8 .
-\]
-Cross-check with \eqref{eq:theta1r}: the correlation is
-$r=\dfrac{S_{xy}}{\sqrt{S_{xx}S_{yy}}}=\dfrac{8}{\sqrt{10\cdot10}}=0.8$, so
-$\theta_1=r\,\dfrac{\sigma_y}{\sigma_x}=0.8\cdot1=0.8$. \checkmark
-
-Then from \eqref{eq:theta0},
-\[
-\theta_0=\ybar-\theta_1\xbar=3-0.8\times3=3-2.4=0.6 .
-\]
-
-\section{Step 4 --- The Fitted Model}
-\begin{equation}
-\boxed{\;\hat y = 0.6 + 0.8\,x\;}
-\end{equation}
-Predictions, residuals and the sum of squared errors:
-\begin{center}
-\begin{tabular}{@{}cccc@{}}
-\toprule
-$x_i$ & $\hat y_i=0.6+0.8x_i$ & $e_i=y_i-\hat y_i$ & $e_i^2$\\
-\midrule
-1 & $1.4$ & $-0.4$ & $0.16$\\
-2 & $2.2$ & $ 0.8$ & $0.64$\\
-3 & $3.0$ & $-1.0$ & $1.00$\\
-4 & $3.8$ & $ 1.2$ & $1.44$\\
-5 & $4.6$ & $-0.6$ & $0.36$\\
-\midrule
-  &       & $\sum e_i=0$ & $\text{SSE}=3.60$\\
-\bottomrule
-\end{tabular}
-\end{center}
-The residuals sum to zero---a general property of the least-squares fit
-(equation \eqref{eq:normal1}). The coefficient of determination is
-\[
-R^2=1-\frac{\text{SSE}}{S_{yy}}=1-\frac{3.6}{10}=0.64=r^2 ,
-\]
-confirming $R^2=r^2$ for simple linear regression.
-
-\begin{figure}[ht]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-  width=11cm,height=7cm,
-  xlabel={$x$ (size)},ylabel={$y$ (price)},
-  xmin=0,xmax=6,ymin=0,ymax=6,
-  grid=both,legend pos=north west]
-\addplot[only marks,mark=*,mark size=2.5pt,color=blue]
-  coordinates {(1,1)(2,3)(3,2)(4,5)(5,4)};
-\addlegendentry{data}
-\addplot[thick,red,domain=0:6] {0.6+0.8*x};
-\addlegendentry{$\hat y=0.6+0.8x$}
-% residual segments
-\addplot[gray,dashed] coordinates {(1,1)(1,1.4)};
-\addplot[gray,dashed] coordinates {(2,3)(2,2.2)};
-\addplot[gray,dashed] coordinates {(3,2)(3,3.0)};
-\addplot[gray,dashed] coordinates {(4,5)(4,3.8)};
-\addplot[gray,dashed] coordinates {(5,4)(5,4.6)};
-\end{axis}
-\end{tikzpicture}
-\caption{Least-squares fit for the house-price dataset. Dashed segments are the
-residuals whose squared lengths are minimized.}
-\label{fig:fit}
-\end{figure}
-
-%==============================================================================
-\chapter{Complete Worked Example: Gradient Descent}
-\label{ch:gdexample}
-%==============================================================================
-
-We now fit the \emph{same} dataset with gradient descent, so we can compare the
-iterative answer against the exact closed-form solution
-$(\theta_0,\theta_1)=(0.6,0.8)$.
-
-\section{Setup}
-Model $\htheta(x)=\theta_0+\theta_1x$, cost
-$J=\frac{1}{2m}\sum(\htheta(x_i)-y_i)^2$ with $m=5$. Initialize
-$\theta_0=\theta_1=0$ and use learning rate $\alpha=0.1$. The update rules are
-\eqref{eq:gdupdate} with gradients
-\[
-g_0=\frac1m\sum_i(\htheta(x_i)-y_i),\qquad
-g_1=\frac1m\sum_i(\htheta(x_i)-y_i)\,x_i .
-\]
-
-\section{The Complete Iteration Table}
-Table~\ref{tab:gdfull} carries out the algorithm in full: for \emph{every}
-iteration it lists all five data points with their prediction
-$\hat y_i=\theta_0+\theta_1 x_i$, error $e_i=\hat y_i-y_i$, squared error
-$e_i^2$, and the product $e_i x_i$ used by the slope gradient. The shaded
-\emph{summary line} closing each iteration accumulates the column sums and
-turns them into the cost and the two gradients,
-\[
-J=\frac{1}{2m}\sum_i e_i^2=\frac{\sum e_i^2}{10},\qquad
-g_0=\frac{1}{m}\sum_i e_i=\frac{\sum e_i}{5},\qquad
-g_1=\frac{1}{m}\sum_i e_i x_i=\frac{\sum e_i x_i}{5},
-\]
-and finally applies the update
-$\theta_j:=\theta_j-\alpha\,g_j$ (with $\alpha=0.1$) to produce the
-$(\theta_0,\theta_1)$ that opens the next iteration. Reading the table top to
-bottom therefore reproduces the entire optimisation by hand.
-
-\begin{center}
-\footnotesize
-\setlength{\tabcolsep}{5pt}
-\renewcommand{\arraystretch}{1.15}
-\begin{longtable}{@{}c c c c c c r r r@{}}
-\caption{One large end-to-end trace of batch gradient descent on the
-house-price data ($\alpha=0.1$, five iterations). Each block shows the
-per-point computation; the summary line gives the sums, cost, gradients and the
-resulting parameter update.}\label{tab:gdfull}\\
-\toprule
-It & $\theta_0$ & $\theta_1$ & $x_i$ & $y_i$ & $\hat y_i$ & $e_i$ & $e_i^2$ & $e_i x_i$\\
-\midrule
-\endfirsthead
-\multicolumn{9}{@{}l}{\footnotesize\itshape (Table~\ref{tab:gdfull} continued)}\\
-\toprule
-It & $\theta_0$ & $\theta_1$ & $x_i$ & $y_i$ & $\hat y_i$ & $e_i$ & $e_i^2$ & $e_i x_i$\\
-\midrule
-\endhead
-\midrule
-\multicolumn{9}{r@{}}{\footnotesize\itshape continued on next page}\\
-\endfoot
-\bottomrule
-\endlastfoot
-% ---------------- Iteration 0 ----------------
-\multirow{5}{*}{0} & \multirow{5}{*}{$0.0000$} & \multirow{5}{*}{$0.0000$}
-  & 1 & 1 & $0.0000$ & $-1.0000$ & $1.0000$  & $-1.0000$\\
-& & & 2 & 3 & $0.0000$ & $-3.0000$ & $9.0000$  & $-6.0000$\\
-& & & 3 & 2 & $0.0000$ & $-2.0000$ & $4.0000$  & $-6.0000$\\
-& & & 4 & 5 & $0.0000$ & $-5.0000$ & $25.0000$ & $-20.0000$\\
-& & & 5 & 4 & $0.0000$ & $-4.0000$ & $16.0000$ & $-20.0000$\\
-\cmidrule(l){4-9}
-\multicolumn{6}{@{}r}{$\textstyle\sum$\;=} & $-15.0000$ & $55.0000$ & $-53.0000$\\
-\multicolumn{9}{@{}l}{\;\;$J=\tfrac{55.0000}{10}=5.5000,\quad
-  g_0=\tfrac{-15.0000}{5}=-3.0000,\quad g_1=\tfrac{-53.0000}{5}=-10.6000
-  \;\Rightarrow\; \theta_0{:}{=}0.3000,\ \theta_1{:}{=}1.0600$}\\
-\midrule
-% ---------------- Iteration 1 ----------------
-\multirow{5}{*}{1} & \multirow{5}{*}{$0.3000$} & \multirow{5}{*}{$1.0600$}
-  & 1 & 1 & $1.3600$ & $0.3600$  & $0.1296$ & $0.3600$\\
-& & & 2 & 3 & $2.4200$ & $-0.5800$ & $0.3364$ & $-1.1600$\\
-& & & 3 & 2 & $3.4800$ & $1.4800$  & $2.1904$ & $4.4400$\\
-& & & 4 & 5 & $4.5400$ & $-0.4600$ & $0.2116$ & $-1.8400$\\
-& & & 5 & 4 & $5.6000$ & $1.6000$  & $2.5600$ & $8.0000$\\
-\cmidrule(l){4-9}
-\multicolumn{6}{@{}r}{$\textstyle\sum$\;=} & $2.4000$ & $5.4280$ & $9.8000$\\
-\multicolumn{9}{@{}l}{\;\;$J=\tfrac{5.4280}{10}=0.5428,\quad
-  g_0=\tfrac{2.4000}{5}=0.4800,\quad g_1=\tfrac{9.8000}{5}=1.9600
-  \;\Rightarrow\; \theta_0{:}{=}0.2520,\ \theta_1{:}{=}0.8640$}\\
-\midrule
-% ---------------- Iteration 2 ----------------
-\multirow{5}{*}{2} & \multirow{5}{*}{$0.2520$} & \multirow{5}{*}{$0.8640$}
-  & 1 & 1 & $1.1160$ & $0.1160$  & $0.0135$ & $0.1160$\\
-& & & 2 & 3 & $1.9800$ & $-1.0200$ & $1.0404$ & $-2.0400$\\
-& & & 3 & 2 & $2.8440$ & $0.8440$  & $0.7123$ & $2.5320$\\
-& & & 4 & 5 & $3.7080$ & $-1.2920$ & $1.6693$ & $-5.1680$\\
-& & & 5 & 4 & $4.5720$ & $0.5720$  & $0.3272$ & $2.8600$\\
-\cmidrule(l){4-9}
-\multicolumn{6}{@{}r}{$\textstyle\sum$\;=} & $-0.7800$ & $3.7626$ & $-1.7000$\\
-\multicolumn{9}{@{}l}{\;\;$J=\tfrac{3.7626}{10}=0.3763,\quad
-  g_0=\tfrac{-0.7800}{5}=-0.1560,\quad g_1=\tfrac{-1.7000}{5}=-0.3400
-  \;\Rightarrow\; \theta_0{:}{=}0.2676,\ \theta_1{:}{=}0.8980$}\\
-\midrule
-% ---------------- Iteration 3 ----------------
-\multirow{5}{*}{3} & \multirow{5}{*}{$0.2676$} & \multirow{5}{*}{$0.8980$}
-  & 1 & 1 & $1.1656$ & $0.1656$  & $0.0274$ & $0.1656$\\
-& & & 2 & 3 & $2.0636$ & $-0.9364$ & $0.8768$ & $-1.8728$\\
-& & & 3 & 2 & $2.9616$ & $0.9616$  & $0.9247$ & $2.8848$\\
-& & & 4 & 5 & $3.8596$ & $-1.1404$ & $1.3005$ & $-4.5616$\\
-& & & 5 & 4 & $4.7576$ & $0.7576$  & $0.5740$ & $3.7880$\\
-\cmidrule(l){4-9}
-\multicolumn{6}{@{}r}{$\textstyle\sum$\;=} & $-0.1920$ & $3.7034$ & $0.4040$\\
-\multicolumn{9}{@{}l}{\;\;$J=\tfrac{3.7034}{10}=0.3703,\quad
-  g_0=\tfrac{-0.1920}{5}=-0.0384,\quad g_1=\tfrac{0.4040}{5}=0.0808
-  \;\Rightarrow\; \theta_0{:}{=}0.2714,\ \theta_1{:}{=}0.8899$}\\
-\midrule
-% ---------------- Iteration 4 ----------------
-\multirow{5}{*}{4} & \multirow{5}{*}{$0.2714$} & \multirow{5}{*}{$0.8899$}
-  & 1 & 1 & $1.1614$ & $0.1614$  & $0.0260$ & $0.1614$\\
-& & & 2 & 3 & $2.0513$ & $-0.9487$ & $0.9001$ & $-1.8974$\\
-& & & 3 & 2 & $2.9412$ & $0.9412$  & $0.8859$ & $2.8236$\\
-& & & 4 & 5 & $3.8311$ & $-1.1689$ & $1.3663$ & $-4.6755$\\
-& & & 5 & 4 & $4.7210$ & $0.7210$  & $0.5199$ & $3.6052$\\
-\cmidrule(l){4-9}
-\multicolumn{6}{@{}r}{$\textstyle\sum$\;=} & $-0.2940$ & $3.6981$ & $0.0172$\\
-\multicolumn{9}{@{}l}{\;\;$J=\tfrac{3.6981}{10}=0.3698,\quad
-  g_0=\tfrac{-0.2940}{5}=-0.0588,\quad g_1=\tfrac{0.0172}{5}=0.0034
-  \;\Rightarrow\; \theta_0{:}{=}0.2773,\ \theta_1{:}{=}0.8896$}\\
-\end{longtable}
-\end{center}
-
-\noindent\textbf{How to read one iteration (take iteration~0).}
-All parameters start at zero, so every prediction $\hat y_i=0$ and each error
-is simply $e_i=-y_i$. Squaring and summing the errors gives
-$\sum e_i^2=55$, hence $J=55/10=5.5$. The two gradients are the column means
-$g_0=\sum e_i/5=-3$ and $g_1=\sum e_i x_i/5=-10.6$. Stepping opposite the
-gradient, $\theta_0=0-0.1(-3)=0.3$ and $\theta_1=0-0.1(-10.6)=1.06$, which are
-exactly the values heading iteration~1. Every subsequent block repeats this
-identical recipe.
-
-\section{Discussion}
-Within a single step the cost collapses from $5.5$ to $0.54$, and the slope
-$\theta_1$ locks onto its optimal value $\approx0.89$ within a few iterations.
-The intercept $\theta_0$, however, drifts only slowly toward its true value
-$0.6$. This is the classic symptom of \emph{unscaled features}: because $x$
-ranges over $1$--$5$, the cost bowl is highly elongated and gradient descent
-zig-zags. Standardizing $x$ first would let both parameters converge together
-in a handful of steps. Given enough iterations the trajectory converges to the
-closed-form optimum $(0.6,\,0.8)$ with minimum cost $J=3.6/10=0.36$.
-
-\begin{figure}[ht]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-  width=11cm,height=6.5cm,
-  xlabel={Iteration},ylabel={Cost $J(\bm\theta)$},
-  xmin=0,xmax=5,ymin=0,ymax=6,
-  grid=both,mark size=2pt]
-\addplot[thick,blue,mark=*]
-  coordinates {(0,5.5)(1,0.5428)(2,0.37626)(3,0.37034)(4,0.36981)(5,0.36948)};
-\end{axis}
-\end{tikzpicture}
-\caption{Cost versus iteration for gradient descent. The rapid initial drop and
-subsequent flattening are typical of convergence toward the global minimum.}
-\label{fig:costiter}
-\end{figure}
-
-%==============================================================================
-\chapter{MATLAB Implementation}
-%==============================================================================
-
-The following script reproduces both solutions and the two figures.
-
-\begin{lstlisting}[style=matlab,caption={Linear regression in MATLAB.}]
+	
+	%------------------------------- Title ----------------------------------------
+	\begin{titlepage}
+		\centering
+		\vspace*{2cm}
+		{\Huge\bfseries Linear Regression\par}
+		\vspace{0.6cm}
+		{\Large Theory, Mathematical Foundations,\\[2pt]
+			Closed-Form Solution and Gradient Descent\par}
+		\vspace{1.5cm}
+		{\large A Self-Contained Set of Lecture Notes\par}
+		\vspace{0.4cm}
+		{\large Introduction to Machine Learning\par}
+		\vspace{2.5cm}
+		\begin{tabular}{c}
+			\hline\\[-6pt]
+			\textbf{Prerequisites:} Basic Calculus and Linear Algebra\\[4pt]
+			\textbf{Level:} B.Tech / M.Tech\\[4pt]
+			\hline
+		\end{tabular}
+		\vfill
+		{\large \today\par}
+	\end{titlepage}
+	
+	\tableofcontents
+	\clearpage
+	
+	%==============================================================================
+	\chapter{Introduction to Machine Learning}
+	%==============================================================================
+	
+	\section{What is Artificial Intelligence?}
+	\emph{Artificial Intelligence} (AI) is the branch of computer science that
+	studies how to build systems capable of performing tasks that normally require
+	human intelligence---perception, reasoning, planning, language understanding
+	and decision making. Classical AI encoded knowledge as explicit rules written
+	by human experts. This works well in narrow, well-understood domains, but
+	becomes brittle when the number of rules and exceptions explodes.
+	
+	\section{What is Machine Learning?}
+	\emph{Machine Learning} (ML) is the sub-field of AI in which a system
+	\emph{learns} the rules directly from data rather than having them
+	hand-coded. Formally, following Tom Mitchell:
+	
+	\begin{quote}
+		A computer program is said to learn from experience $E$ with respect to some
+		class of tasks $T$ and performance measure $P$, if its performance at tasks in
+		$T$, as measured by $P$, improves with experience $E$.
+	\end{quote}
+	
+	For linear regression the ingredients are:
+	\begin{itemize}[nosep]
+		\item $T$: predict a real-valued output from input features;
+		\item $E$: a dataset of past $(\text{input},\text{output})$ pairs;
+		\item $P$: a loss (error) function such as the mean squared error.
+	\end{itemize}
+	
+	\section{Types of Machine Learning}
+	
+	\subsection{Supervised Learning}
+	The training data consists of input--output pairs
+	$\{(\vx^{(i)},y^{(i)})\}_{i=1}^{m}$, and the goal is to learn a function
+	$h:\mathcal{X}\to\mathcal{Y}$ that predicts $y$ from $\vx$. When $y$ is
+	continuous the problem is called \emph{regression}; when $y$ is a discrete
+	label it is called \emph{classification}. \textbf{Linear regression is the
+		canonical supervised regression algorithm.}
+	
+	\subsection{Unsupervised Learning}
+	Only inputs $\{\vx^{(i)}\}$ are available (no labels). The goal is to discover
+	structure---clusters, low-dimensional manifolds, density. Examples: $k$-means,
+	principal component analysis.
+	
+	\subsection{Reinforcement Learning}
+	An agent interacts with an environment, receives rewards, and learns a policy
+	that maximizes cumulative reward over time. There is no fixed labelled dataset;
+	feedback is evaluative and delayed.
+	
+	\section{Where does Linear Regression fit?}
+	Linear regression is \emph{supervised}, solves a \emph{regression} task, and
+	uses a \emph{parametric linear} model. Despite its simplicity it is the
+	foundation for a large part of statistics and ML: logistic regression,
+	generalized linear models, ridge/lasso regularization, and even the final
+	layer of many neural networks are direct descendants.
+	
+	\section{Applications of Linear Regression}
+	\begin{itemize}[nosep]
+		\item Predicting house prices from size, location and number of rooms.
+		\item Forecasting sales or demand from advertising spend.
+		\item Estimating a person's expenditure from income.
+		\item Modelling the relationship between temperature and energy consumption.
+		\item Calibrating sensors (mapping raw readings to physical quantities).
+	\end{itemize}
+	
+	\section{Regression vs Classification}
+	\begin{center}
+		\begin{tabular}{@{}p{6.5cm}p{6.5cm}@{}}
+			\toprule
+			\textbf{Regression} & \textbf{Classification}\\
+			\midrule
+			Output is continuous ($y\in\R$).      & Output is discrete (a class label).\\
+			Example: price, temperature.          & Example: spam / not-spam.\\
+			Typical loss: squared error.          & Typical loss: cross-entropy.\\
+			Metric: RMSE, $R^2$.                  & Metric: accuracy, F1.\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	
+	\section{Assumptions of Linear Regression}
+	The ordinary least-squares (OLS) model relies on the following assumptions.
+	\begin{enumerate}[nosep]
+		\item \textbf{Linearity.} The expected value of $y$ is a linear function of
+		the parameters.
+		\item \textbf{Independence.} The observations (errors) are independent.
+		\item \textbf{Homoscedasticity.} The errors have constant variance
+		$\sigma^2$.
+		\item \textbf{Normality.} For inference, errors are (approximately) normally
+		distributed with zero mean.
+		\item \textbf{No perfect multicollinearity.} The feature matrix has full
+		column rank, so $\Xmat^{\!\top}\Xmat$ is invertible.
+	\end{enumerate}
+	
+	%==============================================================================
+	\chapter{Mathematical Background}
+	%==============================================================================
+	
+	\section{Scalars, Vectors and Matrices}
+	A \emph{scalar} is a single number, e.g.\ $a\in\R$. A \emph{vector} is an
+	ordered list of numbers, written as a column
+	\[
+	\vx=\begin{bmatrix}x_1\\x_2\\\vdots\\x_n\end{bmatrix}\in\R^{n}.
+	\]
+	A \emph{matrix} is a rectangular array $\Xmat\in\R^{m\times n}$ with entries
+	$X_{ij}$. Transposition swaps rows and columns: $(\Xmat^{\!\top})_{ij}=X_{ji}$.
+	
+	\section{Dataset Representation}
+	A supervised dataset with $m$ examples and $n$ features is written
+	$\{(\vx^{(i)},y^{(i)})\}_{i=1}^{m}$, where $\vx^{(i)}\in\R^{n}$ and
+	$y^{(i)}\in\R$. The superscript $(i)$ indexes examples, the subscript $j$
+	indexes features, so $x^{(i)}_j$ is the $j$-th feature of the $i$-th example.
+	
+	\subsection{Feature Matrix}
+	Stacking all examples as rows and prepending a column of ones (for the
+	intercept term) gives the \emph{design} or \emph{feature matrix}
+	\begin{equation}
+		\Xmat=
+		\begin{bmatrix}
+			1 & x^{(1)}_1 & \cdots & x^{(1)}_n\\
+			1 & x^{(2)}_1 & \cdots & x^{(2)}_n\\
+			\vdots & \vdots & & \vdots\\
+			1 & x^{(m)}_1 & \cdots & x^{(m)}_n
+		\end{bmatrix}\in\R^{m\times(n+1)}.
+		\label{eq:designmatrix}
+	\end{equation}
+	
+	\subsection{Target Vector}
+	The outputs are collected into the \emph{target vector}
+	\[
+	\vy=\begin{bmatrix}y^{(1)}\\y^{(2)}\\\vdots\\y^{(m)}\end{bmatrix}\in\R^{m}.
+	\]
+	
+	\section{Dot Product}
+	For $\mathbf{a},\mathbf{b}\in\R^{n}$,
+	\[
+	\mathbf{a}^{\!\top}\mathbf{b}=\sum_{j=1}^{n}a_j b_j .
+	\]
+	Geometrically $\mathbf{a}^{\!\top}\mathbf{b}=\|\mathbf{a}\|\,\|\mathbf{b}\|\cos\vartheta$.
+	
+	\section{Matrix Multiplication}
+	If $\mathbf{A}\in\R^{m\times k}$ and $\mathbf{B}\in\R^{k\times n}$ then
+	$\mathbf{C}=\mathbf{A}\mathbf{B}\in\R^{m\times n}$ with
+	$C_{ij}=\sum_{\ell=1}^{k}A_{i\ell}B_{\ell j}$. In particular, the prediction of
+	a linear model for all examples at once is the matrix--vector product
+	$\Xmat\vw$.
+	
+	\section{Descriptive Statistics}
+	Let $x_1,\dots,x_m$ be a sample.
+	
+	\begin{definition}[Mean]
+		\[
+		\xbar=\frac1m\sum_{i=1}^{m}x_i .
+		\]
+	\end{definition}
+	
+	\begin{definition}[Variance]
+		The (population) variance measures spread about the mean:
+		\[
+		\Var(x)=\frac1m\sum_{i=1}^{m}(x_i-\xbar)^2 .
+		\]
+		The unbiased sample variance divides by $m-1$ instead of $m$.
+	\end{definition}
+	
+	\begin{definition}[Standard deviation]
+		\[
+		\sigma_x=\sqrt{\Var(x)} .
+		\]
+	\end{definition}
+	
+	\begin{definition}[Covariance]
+		For paired data $(x_i,y_i)$,
+		\[
+		\Cov(x,y)=\frac1m\sum_{i=1}^{m}(x_i-\xbar)(y_i-\ybar).
+		\]
+		Covariance is positive when the two variables tend to increase together.
+	\end{definition}
+	
+	\begin{definition}[Correlation coefficient]
+		The Pearson correlation coefficient normalizes covariance to $[-1,1]$:
+		\begin{equation}
+			r=\frac{\Cov(x,y)}{\sigma_x\,\sigma_y}
+			=\frac{\sum_{i}(x_i-\xbar)(y_i-\ybar)}
+			{\sqrt{\sum_{i}(x_i-\xbar)^2}\,\sqrt{\sum_{i}(y_i-\ybar)^2}}.
+			\label{eq:corr}
+		\end{equation}
+	\end{definition}
+	
+	These five quantities reappear directly in the closed-form solution of simple
+	linear regression (Chapter~\ref{ch:closedform}).
+	
+	%==============================================================================
+	\chapter{Linear Regression Theory}
+	%==============================================================================
+	
+	\section{Problem Formulation}
+	Given training data $\{(\vx^{(i)},y^{(i)})\}_{i=1}^{m}$ we seek a function that
+	predicts $y$ from $\vx$ as accurately as possible on unseen data.
+	
+	\paragraph{Training data.} The $m$ observed pairs used to fit the model.
+	\paragraph{Features.} The inputs $\vx^{(i)}\in\R^{n}$ (also called predictors,
+	covariates or independent variables).
+	\paragraph{Target.} The output $y^{(i)}\in\R$ (also called the response or
+	dependent variable).
+	
+	\section{The Linear Model}
+	Linear regression assumes the target is (approximately) a linear function of
+	the features plus an intercept:
+	\begin{equation}
+		\htheta(\vx)=\theta_0+\theta_1 x_1+\theta_2 x_2+\cdots+\theta_n x_n .
+		\label{eq:multimodel}
+	\end{equation}
+	Introducing a dummy feature $x_0\equiv 1$ this becomes the compact dot product
+	\begin{equation}
+		\htheta(\vx)=\sum_{j=0}^{n}\theta_j x_j=\vw^{\!\top}\vx ,
+		\qquad \vw=\begin{bmatrix}\theta_0\\\vdots\\\theta_n\end{bmatrix},\;
+		\vx=\begin{bmatrix}1\\x_1\\\vdots\\x_n\end{bmatrix}.
+		\label{eq:dotmodel}
+	\end{equation}
+	
+	\subsection{Simple Linear Regression}
+	The special case $n=1$ (a single feature) is \emph{simple linear regression}:
+	\begin{equation}
+		\boxed{\;\hat{y}=\htheta(x)=\theta_0+\theta_1 x\;}
+		\label{eq:simplemodel}
+	\end{equation}
+	Here $\theta_0$ is the \emph{intercept} (value of $\hat y$ when $x=0$) and
+	$\theta_1$ is the \emph{slope} (change in $\hat y$ per unit change in $x$).
+	
+	\paragraph{Hypothesis function and prediction.}
+	The function $\htheta$ is the \emph{hypothesis}; evaluating it at a new input
+	$x_\star$ yields the \emph{prediction} $\hat y_\star=\theta_0+\theta_1 x_\star$.
+	Learning means choosing $\vw$ so that predictions match the targets.
+	
+	%==============================================================================
+	\chapter{The Loss Function}
+	%==============================================================================
+	
+	\section{Definition}
+	To choose $\vw$ we need a measure of how wrong the predictions are. Define the
+	error (residual) of example $i$ as $\htheta(x^{(i)})-y^{(i)}$. The \emph{mean
+		squared error} cost function is
+	\begin{equation}
+		\boxed{\;J(\vw)=\frac{1}{2m}\sum_{i=1}^{m}\bigl(\htheta(x^{(i)})-y^{(i)}\bigr)^2\;}
+		\label{eq:cost}
+	\end{equation}
+	
+	\section{Why Square the Error?}
+	\begin{itemize}[nosep]
+		\item \textbf{Sign removal.} Squaring makes positive and negative errors both
+		count as ``bad'' and prevents them from cancelling.
+		\item \textbf{Smoothness.} $(\cdot)^2$ is differentiable everywhere, unlike
+		$|\cdot|$, which lets us use calculus and gradient descent.
+		\item \textbf{Penalizing large errors.} Big mistakes are penalized
+		disproportionately, encouraging the fit to avoid gross outliers.
+		\item \textbf{Statistical justification.} Under Gaussian noise, minimizing
+		squared error is equivalent to maximum-likelihood estimation.
+	\end{itemize}
+	
+	\section{Why Divide by $m$ (and by $2$)?}
+	Dividing by $m$ turns the \emph{sum} of squared errors into a \emph{mean},
+	making the cost independent of the dataset size so that learning rates transfer
+	across datasets. The extra factor of $\tfrac12$ is a convenience: when we
+	differentiate the square, the exponent $2$ cancels the $\tfrac12$, giving a
+	cleaner gradient. Neither constant changes the location of the minimum:
+	\[
+	\argmin_{\vw} \tfrac{1}{2m}\textstyle\sum_i(\cdot)^2
+	= \argmin_{\vw} \sum_i(\cdot)^2 .
+	\]
+	
+	\section{Convexity of the Cost Function}
+	\label{sec:convex}
+	As a function of $\vw$, $J$ is a sum of squares of \emph{affine} functions of
+	$\vw$, hence a quadratic form. Its Hessian (Chapter~\ref{ch:normaleq}) is
+	\[
+	\nabla^2 J(\vw)=\frac1m\Xmat^{\!\top}\Xmat ,
+	\]
+	which is positive semi-definite because for any vector $\mathbf{v}$,
+	$\mathbf{v}^{\!\top}\Xmat^{\!\top}\Xmat\mathbf{v}=\|\Xmat\mathbf{v}\|^2\ge0$.
+	Therefore $J$ is \textbf{convex}: any stationary point is a \emph{global}
+	minimum, and there are no spurious local minima. If $\Xmat$ has full column
+	rank the Hessian is positive definite and the minimizer is unique.
+	
+	\begin{figure}[ht]
+		\centering
+		\begin{tikzpicture}
+			\begin{axis}[
+				width=10cm,height=7cm,
+				view={35}{30},
+				xlabel={$\theta_0$},ylabel={$\theta_1$},zlabel={$J(\bm\theta)$},
+				colormap/viridis, grid=both,
+				domain=-2:2,y domain=-2:2,samples=25,
+				title={Convex ``bowl'' cost surface}]
+				\addplot3[surf,opacity=0.85] {0.5*(x*x + y*y) + 0.3*x*y};
+			\end{axis}
+		\end{tikzpicture}
+		\caption{The mean-squared-error cost is a convex paraboloid in parameter
+			space; gradient descent slides down to its single global minimum.}
+		\label{fig:bowl}
+	\end{figure}
+	
+	%==============================================================================
+	\chapter{Closed-Form Solution (Simple Linear Regression)}
+	\label{ch:closedform}
+	%==============================================================================
+	
+	We derive the optimal $\theta_0,\theta_1$ for the single-feature model
+	\eqref{eq:simplemodel} by minimizing the sum of squared errors
+	\begin{equation}
+		S(\theta_0,\theta_1)=\sum_{i=1}^{m}\bigl(y^{(i)}-\theta_0-\theta_1 x^{(i)}\bigr)^2 .
+		\label{eq:SSE}
+	\end{equation}
+	(We minimize $S=2m\,J$; the constant does not affect the minimizer.) To keep
+	the notation light, write $x_i,y_i$ for $x^{(i)},y^{(i)}$ and let all sums run
+	$i=1,\dots,m$.
+	
+	\section{Setting the Partial Derivatives to Zero}
+	At a minimum both partial derivatives vanish.
+	
+	\paragraph{With respect to $\theta_0$.}
+	\begin{align}
+		\frac{\partial S}{\partial\theta_0}
+		&=\sum_i 2\bigl(y_i-\theta_0-\theta_1 x_i\bigr)(-1)
+		=-2\sum_i\bigl(y_i-\theta_0-\theta_1 x_i\bigr).
+	\end{align}
+	Setting $\dfrac{\partial S}{\partial\theta_0}=0$ and dividing by $-2$:
+	\begin{equation}
+		\sum_i\bigl(y_i-\theta_0-\theta_1 x_i\bigr)=0
+		\;\Longrightarrow\;
+		\sum_i y_i = m\,\theta_0+\theta_1\sum_i x_i .
+		\label{eq:normal1}
+	\end{equation}
+	
+	\paragraph{With respect to $\theta_1$.}
+	\begin{align}
+		\frac{\partial S}{\partial\theta_1}
+		&=\sum_i 2\bigl(y_i-\theta_0-\theta_1 x_i\bigr)(-x_i)
+		=-2\sum_i x_i\bigl(y_i-\theta_0-\theta_1 x_i\bigr).
+	\end{align}
+	Setting $\dfrac{\partial S}{\partial\theta_1}=0$ and dividing by $-2$:
+	\begin{equation}
+		\sum_i x_i y_i = \theta_0\sum_i x_i+\theta_1\sum_i x_i^2 .
+		\label{eq:normal2}
+	\end{equation}
+	
+	Equations \eqref{eq:normal1} and \eqref{eq:normal2} are the \textbf{two normal
+		equations} for simple linear regression.
+	
+	\section{Solving the Normal Equations}
+	From \eqref{eq:normal1}, dividing by $m$ and using
+	$\xbar=\frac1m\sum x_i,\ \ybar=\frac1m\sum y_i$:
+	\begin{equation}
+		\ybar=\theta_0+\theta_1\xbar
+		\;\Longrightarrow\;
+		\boxed{\;\theta_0=\ybar-\theta_1\xbar\;}
+		\label{eq:theta0}
+	\end{equation}
+	This shows the fitted line always passes through the centroid
+	$(\xbar,\ybar)$. Substitute \eqref{eq:theta0} into \eqref{eq:normal2}:
+	\begin{align}
+		\sum_i x_i y_i
+		&=(\ybar-\theta_1\xbar)\sum_i x_i+\theta_1\sum_i x_i^2\\
+		&=\ybar\sum_i x_i+\theta_1\Bigl(\sum_i x_i^2-\xbar\sum_i x_i\Bigr).
+	\end{align}
+	Hence
+	\begin{equation}
+		\theta_1=\frac{\sum_i x_i y_i-\ybar\sum_i x_i}
+		{\sum_i x_i^2-\xbar\sum_i x_i}.
+		\label{eq:theta1raw}
+	\end{equation}
+	Using the algebraic identities
+	$\sum_i x_i y_i-\ybar\sum_i x_i=\sum_i(x_i-\xbar)(y_i-\ybar)$ and
+	$\sum_i x_i^2-\xbar\sum_i x_i=\sum_i(x_i-\xbar)^2$ (proved below), we obtain the
+	standard form
+	\begin{equation}
+		\boxed{\;\theta_1
+			=\frac{\sum_i(x_i-\xbar)(y_i-\ybar)}{\sum_i(x_i-\xbar)^2}
+			=\frac{S_{xy}}{S_{xx}}\;}
+		\label{eq:theta1}
+	\end{equation}
+	where $S_{xy}=\sum_i(x_i-\xbar)(y_i-\ybar)$ and
+	$S_{xx}=\sum_i(x_i-\xbar)^2$.
+	
+	\begin{proof}[Proof of the two identities]
+		Expand and use $\sum_i x_i=m\xbar,\ \sum_i y_i=m\ybar$:
+		\begin{align*}
+			\sum_i(x_i-\xbar)(y_i-\ybar)
+			&=\sum_i x_i y_i-\ybar\sum_i x_i-\xbar\sum_i y_i+m\xbar\ybar\\
+			&=\sum_i x_i y_i-\ybar(m\xbar)-\xbar(m\ybar)+m\xbar\ybar
+			=\sum_i x_i y_i-m\xbar\ybar
+			=\sum_i x_i y_i-\ybar\sum_i x_i .
+		\end{align*}
+		The second identity is the same computation with $y\equiv x$. \qedhere
+	\end{proof}
+	
+	\section{Equivalent Forms via Covariance, Variance and Correlation}
+	Dividing numerator and denominator of \eqref{eq:theta1} by $m$ converts the
+	sums-of-squares into the statistics of Chapter~2:
+	\begin{equation}
+		\theta_1=\frac{\frac1m S_{xy}}{\frac1m S_{xx}}
+		=\frac{\Cov(x,y)}{\Var(x)} .
+		\label{eq:theta1cov}
+	\end{equation}
+	Furthermore, using $r=\dfrac{\Cov(x,y)}{\sigma_x\sigma_y}$ and
+	$\Var(x)=\sigma_x^2$,
+	\begin{equation}
+		\boxed{\;\theta_1=\frac{\Cov(x,y)}{\Var(x)}
+			=\frac{r\,\sigma_x\sigma_y}{\sigma_x^2}
+			=r\,\frac{\sigma_y}{\sigma_x}\;}
+		\label{eq:theta1r}
+	\end{equation}
+	So the slope equals the correlation coefficient scaled by the ratio of standard
+	deviations, and the intercept follows from \eqref{eq:theta0}. These are the
+	formulas we will use for hand computation in Chapter~\ref{ch:cfexample}.
+	
+	%==============================================================================
+	\chapter{Matrix Formulation}
+	%==============================================================================
+	
+	We now treat the general multi-feature model in matrix notation, which yields a
+	single elegant formula valid for any number of features.
+	
+	\section{Model in Matrix Form}
+	With the design matrix $\Xmat\in\R^{m\times(n+1)}$ of \eqref{eq:designmatrix}
+	(a leading column of ones) and parameter vector
+	$\vw=[\theta_0,\theta_1,\dots,\theta_n]^{\!\top}$, the vector of all $m$
+	predictions is
+	\begin{equation}
+		\hat{\vy}=\Xmat\vw .
+		\label{eq:matpred}
+	\end{equation}
+	For the single-feature case,
+	\[
+	\Xmat=\begin{bmatrix}1&x_1\\1&x_2\\\vdots&\vdots\\1&x_m\end{bmatrix},\qquad
+	\vw=\begin{bmatrix}\theta_0\\\theta_1\end{bmatrix},\qquad
+	\hat{\vy}=\Xmat\vw=\begin{bmatrix}\theta_0+\theta_1 x_1\\\vdots\\\theta_0+\theta_1 x_m\end{bmatrix}.
+	\]
+	
+	\section{Residual Vector and the Cost}
+	The \emph{residual vector} collects all errors,
+	\begin{equation}
+		\mathbf{r}=\Xmat\vw-\vy
+		=\begin{bmatrix}\htheta(x^{(1)})-y^{(1)}\\\vdots\\\htheta(x^{(m)})-y^{(m)}\end{bmatrix}.
+		\label{eq:residual}
+	\end{equation}
+	The key observation is that the sum of squared errors is exactly the squared
+	Euclidean norm of the residual vector, i.e.\ its dot product with itself:
+	\begin{equation}
+		\sum_{i=1}^{m}e_i^2
+		=\sum_{i=1}^{m}\bigl(\htheta(x^{(i)})-y^{(i)}\bigr)^2
+		=\mathbf{r}^{\!\top}\mathbf{r}
+		=(\Xmat\vw-\vy)^{\!\top}(\Xmat\vw-\vy).
+		\label{eq:sumtonorm}
+	\end{equation}
+	
+	\begin{proof}[Why \eqref{eq:sumtonorm} holds --- no skipped steps]
+		For \emph{any} vector $\mathbf{r}=[e_1,\dots,e_m]^{\!\top}\in\R^{m}$, the
+		definition of matrix multiplication gives the dot product
+		\[
+		\mathbf{r}^{\!\top}\mathbf{r}
+		=\begin{bmatrix}e_1&e_2&\cdots&e_m\end{bmatrix}
+		\begin{bmatrix}e_1\\e_2\\\vdots\\e_m\end{bmatrix}
+		=e_1e_1+e_2e_2+\cdots+e_me_m
+		=\sum_{i=1}^{m}e_i^2 .
+		\]
+		Now substitute the specific residual $\mathbf{r}=\Xmat\vw-\vy$ from
+		\eqref{eq:residual}; its $i$-th component is exactly
+		$e_i=\htheta(x^{(i)})-y^{(i)}$, which proves \eqref{eq:sumtonorm}.
+	\end{proof}
+	
+	Therefore the cost function \eqref{eq:cost} in matrix form is
+	\begin{equation}
+		\boxed{\;J(\vw)=\frac{1}{2m}(\Xmat\vw-\vy)^{\!\top}(\Xmat\vw-\vy)\;}
+		\label{eq:matcost}
+	\end{equation}
+	
+	%==============================================================================
+	\chapter{Derivation of the Normal Equation}
+	\label{ch:normaleq}
+	%==============================================================================
+	
+	We minimize \eqref{eq:matcost} directly with matrix calculus. Because a
+	constant scaling does not move the minimizer, drop the $\tfrac1m$ and work with
+	$J(\vw)=\tfrac12(\Xmat\vw-\vy)^{\!\top}(\Xmat\vw-\vy)$.
+	
+	\section{Expanding the Quadratic Form}
+	Let $\mathbf{r}=\Xmat\vw-\vy$. Then
+	\begin{align}
+		2J(\vw)&=(\Xmat\vw-\vy)^{\!\top}(\Xmat\vw-\vy)\notag\\
+		&=(\Xmat\vw)^{\!\top}(\Xmat\vw)
+		-(\Xmat\vw)^{\!\top}\vy
+		-\vy^{\!\top}(\Xmat\vw)
+		+\vy^{\!\top}\vy .
+		\label{eq:expand1}
+	\end{align}
+	Using $(\Xmat\vw)^{\!\top}=\vw^{\!\top}\Xmat^{\!\top}$ and noting that each term
+	is a $1\times1$ scalar (so it equals its own transpose), the two cross terms
+	are identical:
+	\[
+	(\Xmat\vw)^{\!\top}\vy=\vw^{\!\top}\Xmat^{\!\top}\vy,\qquad
+	\vy^{\!\top}(\Xmat\vw)=\bigl(\vw^{\!\top}\Xmat^{\!\top}\vy\bigr)^{\!\top}
+	=\vw^{\!\top}\Xmat^{\!\top}\vy .
+	\]
+	Hence \eqref{eq:expand1} collapses to
+	\begin{equation}
+		2J(\vw)=\vw^{\!\top}\Xmat^{\!\top}\Xmat\vw
+		-2\,\vw^{\!\top}\Xmat^{\!\top}\vy
+		+\vy^{\!\top}\vy .
+		\label{eq:expand2}
+	\end{equation}
+	
+	\section{Matrix Calculus Rules Used}
+	We use two standard vector-derivative identities. For constant vector
+	$\mathbf{b}$ and constant symmetric matrix $\mathbf{A}=\mathbf{A}^{\!\top}$,
+	\begin{equation}
+		\frac{\partial}{\partial\vw}\bigl(\vw^{\!\top}\mathbf{b}\bigr)=\mathbf{b},
+		\qquad
+		\frac{\partial}{\partial\vw}\bigl(\vw^{\!\top}\mathbf{A}\vw\bigr)=2\mathbf{A}\vw .
+		\label{eq:matcalc}
+	\end{equation}
+	
+	\begin{proof}[Sketch of the second identity]
+		Write $f(\vw)=\vw^{\!\top}\mathbf{A}\vw=\sum_{p}\sum_{q}\theta_p A_{pq}\theta_q$.
+		Differentiate with respect to a single component $\theta_k$:
+		\[
+		\frac{\partial f}{\partial\theta_k}
+		=\sum_q A_{kq}\theta_q+\sum_p \theta_p A_{pk}
+		=(\mathbf{A}\vw)_k+(\mathbf{A}^{\!\top}\vw)_k .
+		\]
+		Stacking over $k$ gives $\nabla f=(\mathbf{A}+\mathbf{A}^{\!\top})\vw$, which
+		equals $2\mathbf{A}\vw$ when $\mathbf{A}$ is symmetric. Here
+		$\mathbf{A}=\Xmat^{\!\top}\Xmat$ is symmetric since
+		$(\Xmat^{\!\top}\Xmat)^{\!\top}=\Xmat^{\!\top}\Xmat$.
+	\end{proof}
+	
+	\section{Differentiating and Solving}
+	Apply \eqref{eq:matcalc} term-by-term to \eqref{eq:expand2} (the constant
+	$\vy^{\!\top}\vy$ has zero derivative):
+	\begin{equation}
+		\frac{\partial (2J)}{\partial\vw}
+		=2\,\Xmat^{\!\top}\Xmat\vw-2\,\Xmat^{\!\top}\vy .
+	\end{equation}
+	Setting the gradient to zero,
+	\begin{equation}
+		\Xmat^{\!\top}\Xmat\vw-\Xmat^{\!\top}\vy=\mathbf{0}
+		\;\Longrightarrow\;
+		\boxed{\;\normeq\;}
+		\label{eq:normaleq}
+	\end{equation}
+	which is the celebrated \textbf{normal equation}. If $\Xmat^{\!\top}\Xmat$ is
+	invertible (full column rank, no perfect multicollinearity),
+	\begin{equation}
+		\boxed{\;\vw=(\Xmat^{\!\top}\Xmat)^{-1}\Xmat^{\!\top}\vy\;}
+		\label{eq:normalsol}
+	\end{equation}
+	Because $J$ is convex (Section~\ref{sec:convex}), this stationary point is the
+	unique global minimizer.
+	
+	\begin{remark}
+		Equation \eqref{eq:normaleq} for the single-feature design matrix reproduces
+		exactly the two scalar normal equations \eqref{eq:normal1}--\eqref{eq:normal2}:
+		carrying out $\Xmat^{\!\top}\Xmat$ and $\Xmat^{\!\top}\vy$ gives
+		\[
+		\Xmat^{\!\top}\Xmat=\begin{bmatrix}m&\sum x_i\\[2pt]\sum x_i&\sum x_i^2\end{bmatrix},
+		\qquad
+		\Xmat^{\!\top}\vy=\begin{bmatrix}\sum y_i\\[2pt]\sum x_i y_i\end{bmatrix}.
+		\]
+	\end{remark}
+	
+	%==============================================================================
+	\chapter{Gradient Descent}
+	%==============================================================================
+	
+	\section{Why Iterative Optimization?}
+	The closed form \eqref{eq:normalsol} requires inverting the
+	$(n+1)\times(n+1)$ matrix $\Xmat^{\!\top}\Xmat$, which costs
+	$\mathcal{O}(n^3)$ and needs the full matrix in memory. When the number of
+	features $n$ (or examples $m$) is very large this becomes impractical.
+	\emph{Gradient descent} avoids matrix inversion by iteratively stepping
+	downhill on the cost surface (Figure~\ref{fig:bowl}).
+	
+	\section{The Gradient}
+	The gradient of the cost \eqref{eq:cost} points in the direction of steepest
+	increase; we move in the opposite direction. Differentiating $J$ with scalar
+	calculus, exactly as in Chapter~\ref{ch:closedform} but keeping the $\tfrac1m$:
+	\begin{align}
+		\frac{\partial J}{\partial\theta_0}
+		&=\frac1m\sum_{i=1}^{m}\bigl(\htheta(x^{(i)})-y^{(i)}\bigr),
+		\label{eq:grad0}\\[4pt]
+		\frac{\partial J}{\partial\theta_1}
+		&=\frac1m\sum_{i=1}^{m}\bigl(\htheta(x^{(i)})-y^{(i)}\bigr)\,x^{(i)} .
+		\label{eq:grad1}
+	\end{align}
+	For the general model the compact vector form is
+	$\nabla J(\vw)=\frac1m\Xmat^{\!\top}(\Xmat\vw-\vy)$.
+	
+	\section{Update Equations}
+	Starting from an initial guess, repeat until convergence (simultaneously
+	updating all parameters):
+	\begin{equation}
+		\boxed{\;
+			\begin{aligned}
+				\theta_0 &:= \theta_0-\alpha\,\frac1m\sum_{i=1}^{m}\bigl(\htheta(x^{(i)})-y^{(i)}\bigr),\\[3pt]
+				\theta_1 &:= \theta_1-\alpha\,\frac1m\sum_{i=1}^{m}\bigl(\htheta(x^{(i)})-y^{(i)}\bigr)\,x^{(i)},
+			\end{aligned}\;}
+		\label{eq:gdupdate}
+	\end{equation}
+	or, in vector form, $\vw:=\vw-\alpha\,\nabla J(\vw)$. The scalar $\alpha>0$ is
+	the \emph{learning rate}.
+	
+	\section{Choice of Learning Rate}
+	\begin{itemize}[nosep]
+		\item If $\alpha$ is \textbf{too small}, convergence is very slow.
+		\item If $\alpha$ is \textbf{too large}, the updates overshoot and $J$ may
+		oscillate or diverge.
+		\item A good practice is to plot $J$ versus iteration: it should decrease
+		smoothly and monotonically.
+		\item \textbf{Feature scaling} (standardizing each feature to zero mean and
+		unit variance) makes the bowl of Figure~\ref{fig:bowl} more circular
+		and dramatically speeds up convergence.
+	\end{itemize}
+	
+	\section{Convex Optimization Guarantee}
+	Because $J$ is convex, gradient descent with a sufficiently small constant
+	$\alpha$ is guaranteed to converge to the \emph{global} minimum---the very same
+	solution given by the normal equation \eqref{eq:normalsol}.
+	
+	%==============================================================================
+	\chapter{Complete Worked Example: Closed Form}
+	\label{ch:cfexample}
+	%==============================================================================
+	
+	\section{The Dataset}
+	Consider a tiny house-price dataset: $x$ is the size (in thousands of square
+	feet) and $y$ is the price (in suitable monetary units). There are $m=5$
+	examples.
+	\begin{center}
+		\begin{tabular}{@{}ccccccc@{}}
+			\toprule
+			$x$ (size) & 1 & 2 & 3 & 4 & 5 & $\sum=15$\\
+			$y$ (price) & 1 & 3 & 2 & 5 & 4 & $\sum=15$\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	
+	\section{Step 1 --- Means}
+	\[
+	\xbar=\frac{1+2+3+4+5}{5}=\frac{15}{5}=3,\qquad
+	\ybar=\frac{1+3+2+5+4}{5}=\frac{15}{5}=3 .
+	\]
+	
+	\section{Step 2 --- Deviations, Covariance and Variance}
+	\begin{center}
+		\begin{tabular}{@{}ccccc@{}}
+			\toprule
+			$x_i$ & $y_i$ & $x_i-\xbar$ & $y_i-\ybar$ & $(x_i-\xbar)(y_i-\ybar)$ \\
+			\midrule
+			1 & 1 & $-2$ & $-2$ & $4$ \\
+			2 & 3 & $-1$ & $ 0$ & $0$ \\
+			3 & 2 & $ 0$ & $-1$ & $0$ \\
+			4 & 5 & $ 1$ & $ 2$ & $2$ \\
+			5 & 4 & $ 2$ & $ 1$ & $2$ \\
+			\midrule
+			\multicolumn{4}{r}{$S_{xy}=\sum(x_i-\xbar)(y_i-\ybar)=$} & $8$ \\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	Similarly
+	\[
+	S_{xx}=\sum(x_i-\xbar)^2=4+1+0+1+4=10,\qquad
+	S_{yy}=\sum(y_i-\ybar)^2=4+0+1+4+1=10 .
+	\]
+	Hence
+	\[
+	\Cov(x,y)=\tfrac{S_{xy}}{m}=\tfrac{8}{5}=1.6,\qquad
+	\Var(x)=\tfrac{S_{xx}}{m}=\tfrac{10}{5}=2,\qquad
+	\sigma_x=\sigma_y=\sqrt{2}\approx1.414 .
+	\]
+	
+	\section{Step 3 --- Slope and Intercept}
+	Using \eqref{eq:theta1}/\eqref{eq:theta1cov},
+	\[
+	\theta_1=\frac{S_{xy}}{S_{xx}}=\frac{8}{10}=0.8
+	=\frac{\Cov(x,y)}{\Var(x)}=\frac{1.6}{2}=0.8 .
+	\]
+	Cross-check with \eqref{eq:theta1r}: the correlation is
+	$r=\dfrac{S_{xy}}{\sqrt{S_{xx}S_{yy}}}=\dfrac{8}{\sqrt{10\cdot10}}=0.8$, so
+	$\theta_1=r\,\dfrac{\sigma_y}{\sigma_x}=0.8\cdot1=0.8$. \checkmark
+	
+	Then from \eqref{eq:theta0},
+	\[
+	\theta_0=\ybar-\theta_1\xbar=3-0.8\times3=3-2.4=0.6 .
+	\]
+	
+	\section{Step 4 --- The Fitted Model}
+	\begin{equation}
+		\boxed{\;\hat y = 0.6 + 0.8\,x\;}
+	\end{equation}
+	Predictions, residuals and the sum of squared errors:
+	\begin{center}
+		\begin{tabular}{@{}cccc@{}}
+			\toprule
+			$x_i$ & $\hat y_i=0.6+0.8x_i$ & $e_i=y_i-\hat y_i$ & $e_i^2$\\
+			\midrule
+			1 & $1.4$ & $-0.4$ & $0.16$\\
+			2 & $2.2$ & $ 0.8$ & $0.64$\\
+			3 & $3.0$ & $-1.0$ & $1.00$\\
+			4 & $3.8$ & $ 1.2$ & $1.44$\\
+			5 & $4.6$ & $-0.6$ & $0.36$\\
+			\midrule
+			&       & $\sum e_i=0$ & $\text{SSE}=3.60$\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	The residuals sum to zero---a general property of the least-squares fit
+	(equation \eqref{eq:normal1}). The coefficient of determination is
+	\[
+	R^2=1-\frac{\text{SSE}}{S_{yy}}=1-\frac{3.6}{10}=0.64=r^2 ,
+	\]
+	confirming $R^2=r^2$ for simple linear regression.
+	
+	\begin{figure}[ht]
+		\centering
+		\begin{tikzpicture}
+			\begin{axis}[
+				width=11cm,height=7cm,
+				xlabel={$x$ (size)},ylabel={$y$ (price)},
+				xmin=0,xmax=6,ymin=0,ymax=6,
+				grid=both,legend pos=north west]
+				\addplot[only marks,mark=*,mark size=2.5pt,color=blue]
+				coordinates {(1,1)(2,3)(3,2)(4,5)(5,4)};
+				\addlegendentry{data}
+				\addplot[thick,red,domain=0:6] {0.6+0.8*x};
+				\addlegendentry{$\hat y=0.6+0.8x$}
+				% residual segments
+				\addplot[gray,dashed] coordinates {(1,1)(1,1.4)};
+				\addplot[gray,dashed] coordinates {(2,3)(2,2.2)};
+				\addplot[gray,dashed] coordinates {(3,2)(3,3.0)};
+				\addplot[gray,dashed] coordinates {(4,5)(4,3.8)};
+				\addplot[gray,dashed] coordinates {(5,4)(5,4.6)};
+			\end{axis}
+		\end{tikzpicture}
+		\caption{Least-squares fit for the house-price dataset. Dashed segments are the
+			residuals whose squared lengths are minimized.}
+		\label{fig:fit}
+	\end{figure}
+	
+	%==============================================================================
+	\chapter{Complete Worked Example: Gradient Descent}
+	\label{ch:gdexample}
+	%==============================================================================
+	
+	We now fit the \emph{same} dataset with gradient descent, so we can compare the
+	iterative answer against the exact closed-form solution
+	$(\theta_0,\theta_1)=(0.6,0.8)$.
+	
+	\section{Setup}
+	Model $\htheta(x)=\theta_0+\theta_1x$, cost
+	$J=\frac{1}{2m}\sum(\htheta(x_i)-y_i)^2$ with $m=5$. Initialize
+	$\theta_0=\theta_1=0$ and use learning rate $\alpha=0.1$. The update rules are
+	\eqref{eq:gdupdate} with gradients
+	\[
+	g_0=\frac1m\sum_i(\htheta(x_i)-y_i),\qquad
+	g_1=\frac1m\sum_i(\htheta(x_i)-y_i)\,x_i .
+	\]
+	
+	\section{The Complete Iteration Table}
+	Table~\ref{tab:gdfull} carries out the algorithm in full: for \emph{every}
+	iteration it lists all five data points with their prediction
+	$\hat y_i=\theta_0+\theta_1 x_i$, error $e_i=\hat y_i-y_i$, squared error
+	$e_i^2$, and the product $e_i x_i$ used by the slope gradient. The shaded
+	\emph{summary line} closing each iteration accumulates the column sums and
+	turns them into the cost and the two gradients,
+	\[
+	J=\frac{1}{2m}\sum_i e_i^2=\frac{\sum e_i^2}{10},\qquad
+	g_0=\frac{1}{m}\sum_i e_i=\frac{\sum e_i}{5},\qquad
+	g_1=\frac{1}{m}\sum_i e_i x_i=\frac{\sum e_i x_i}{5},
+	\]
+	and finally applies the update
+	$\theta_j:=\theta_j-\alpha\,g_j$ (with $\alpha=0.1$) to produce the
+	$(\theta_0,\theta_1)$ that opens the next iteration. Reading the table top to
+	bottom therefore reproduces the entire optimisation by hand.
+	
+	\begin{center}
+		\footnotesize
+		\setlength{\tabcolsep}{5pt}
+		\renewcommand{\arraystretch}{1.15}
+		\begin{longtable}{@{}c c c c c c r r r@{}}
+			\caption{One large end-to-end trace of batch gradient descent on the
+				house-price data ($\alpha=0.1$, five iterations). Each block shows the
+				per-point computation; the summary line gives the sums, cost, gradients and the
+				resulting parameter update.}\label{tab:gdfull}\\
+			\toprule
+			It & $\theta_0$ & $\theta_1$ & $x_i$ & $y_i$ & $\hat y_i$ & $e_i$ & $e_i^2$ & $e_i x_i$\\
+			 &  &  &  &  & $\theta_0+\theta_1 x_i$ & $\hat y_i-y_i$ &  & \\
+			\midrule
+			\endfirsthead
+			\multicolumn{9}{@{}l}{\footnotesize\itshape (Table~\ref{tab:gdfull} continued)}\\
+			\toprule
+			It & $\theta_0$ & $\theta_1$ & $x_i$ & $y_i$ & $\hat y_i$ & $e_i$ & $e_i^2$ & $e_i x_i$\\
+			\midrule
+			\endhead
+			\midrule
+			\multicolumn{9}{r@{}}{\footnotesize\itshape continued on next page}\\
+			\endfoot
+			\bottomrule
+			\endlastfoot
+			% ---------------- Iteration 0 ----------------
+			\multirow{5}{*}{0} & \multirow{5}{*}{$0.0000$} & \multirow{5}{*}{$0.0000$}
+			& 1 & 1 & $0.0000$ & $-1.0000$ & $1.0000$  & $-1.0000$\\
+			& & & 2 & 3 & $0.0000$ & $-3.0000$ & $9.0000$  & $-6.0000$\\
+			& & & 3 & 2 & $0.0000$ & $-2.0000$ & $4.0000$  & $-6.0000$\\
+			& & & 4 & 5 & $0.0000$ & $-5.0000$ & $25.0000$ & $-20.0000$\\
+			& & & 5 & 4 & $0.0000$ & $-4.0000$ & $16.0000$ & $-20.0000$\\
+			\cmidrule(l){4-9}
+			\multicolumn{6}{@{}r}{$\textstyle\sum$\;=} & $-15.0000$ & $55.0000$ & $-53.0000$\\
+			 &  &  &  &  &  &  &  & \\
+			\multicolumn{9}{@{}l}{\;\;$J=\tfrac{55.0000}{10}=5.5000,\quad
+				g_0=\tfrac{-15.0000}{5}=-3.0000,\quad g_1=\tfrac{-53.0000}{5}=-10.6000
+				\;\Rightarrow\; \theta_0{:}{=}0.3000,\ \theta_1{:}{=}1.0600$}\\
+			\midrule
+			It & $\theta_0$ & $\theta_1$ & $x_i$ & $y_i$ & $\hat y_i$ & $e_i$ & $e_i^2$ & $e_i x_i$\\
+			 &  &  &  &  & $\theta_0+\theta_1 x_i$ & $\hat y_i-y_i$ &  & \\
+			\midrule
+			% ---------------- Iteration 1 ----------------
+			\multirow{5}{*}{1} & \multirow{5}{*}{$0.3000$} & \multirow{5}{*}{$1.0600$}
+			& 1 & 1 & $1.3600$ & $0.3600$  & $0.1296$ & $0.3600$\\
+			& & & 2 & 3 & $2.4200$ & $-0.5800$ & $0.3364$ & $-1.1600$\\
+			& & & 3 & 2 & $3.4800$ & $1.4800$  & $2.1904$ & $4.4400$\\
+			& & & 4 & 5 & $4.5400$ & $-0.4600$ & $0.2116$ & $-1.8400$\\
+			& & & 5 & 4 & $5.6000$ & $1.6000$  & $2.5600$ & $8.0000$\\
+			\cmidrule(l){4-9}
+			\multicolumn{6}{@{}r}{$\textstyle\sum$\;=} & $2.4000$ & $5.4280$ & $9.8000$\\
+			 &  &  &  &  &  &  &  & \\
+			\multicolumn{9}{@{}l}{\;\;$J=\tfrac{5.4280}{10}=0.5428,\quad
+				g_0=\tfrac{2.4000}{5}=0.4800,\quad g_1=\tfrac{9.8000}{5}=1.9600
+				\;\Rightarrow\; \theta_0{:}{=}0.2520,\ \theta_1{:}{=}0.8640$}\\
+			\midrule
+			It & $\theta_0$ & $\theta_1$ & $x_i$ & $y_i$ & $\hat y_i$ & $e_i$ & $e_i^2$ & $e_i x_i$\\
+			 &  &  &  &  & $\theta_0+\theta_1 x_i$ & $\hat y_i-y_i$ &  & \\
+			\midrule
+			% ---------------- Iteration 2 ----------------
+			\multirow{5}{*}{2} & \multirow{5}{*}{$0.2520$} & \multirow{5}{*}{$0.8640$}
+			& 1 & 1 & $1.1160$ & $0.1160$  & $0.0135$ & $0.1160$\\
+			& & & 2 & 3 & $1.9800$ & $-1.0200$ & $1.0404$ & $-2.0400$\\
+			& & & 3 & 2 & $2.8440$ & $0.8440$  & $0.7123$ & $2.5320$\\
+			& & & 4 & 5 & $3.7080$ & $-1.2920$ & $1.6693$ & $-5.1680$\\
+			& & & 5 & 4 & $4.5720$ & $0.5720$  & $0.3272$ & $2.8600$\\
+			\cmidrule(l){4-9}
+			\multicolumn{6}{@{}r}{$\textstyle\sum$\;=} & $-0.7800$ & $3.7626$ & $-1.7000$\\
+			 &  &  &  &  &  &  &  & \\
+			\multicolumn{9}{@{}l}{\;\;$J=\tfrac{3.7626}{10}=0.3763,\quad
+				g_0=\tfrac{-0.7800}{5}=-0.1560,\quad g_1=\tfrac{-1.7000}{5}=-0.3400
+				\;\Rightarrow\; \theta_0{:}{=}0.2676,\ \theta_1{:}{=}0.8980$}\\
+			\midrule
+			It & $\theta_0$ & $\theta_1$ & $x_i$ & $y_i$ & $\hat y_i$ & $e_i$ & $e_i^2$ & $e_i x_i$\\
+			 &  &  &  &  & $\theta_0+\theta_1 x_i$ & $\hat y_i-y_i$ &  & \\
+			\midrule
+			% ---------------- Iteration 3 ----------------
+			\multirow{5}{*}{3} & \multirow{5}{*}{$0.2676$} & \multirow{5}{*}{$0.8980$}
+			& 1 & 1 & $1.1656$ & $0.1656$  & $0.0274$ & $0.1656$\\
+			& & & 2 & 3 & $2.0636$ & $-0.9364$ & $0.8768$ & $-1.8728$\\
+			& & & 3 & 2 & $2.9616$ & $0.9616$  & $0.9247$ & $2.8848$\\
+			& & & 4 & 5 & $3.8596$ & $-1.1404$ & $1.3005$ & $-4.5616$\\
+			& & & 5 & 4 & $4.7576$ & $0.7576$  & $0.5740$ & $3.7880$\\
+			\cmidrule(l){4-9}
+			\multicolumn{6}{@{}r}{$\textstyle\sum$\;=} & $-0.1920$ & $3.7034$ & $0.4040$\\
+			 &  &  &  &  &  &  &  & \\
+			\multicolumn{9}{@{}l}{\;\;$J=\tfrac{3.7034}{10}=0.3703,\quad
+				g_0=\tfrac{-0.1920}{5}=-0.0384,\quad g_1=\tfrac{0.4040}{5}=0.0808
+				\;\Rightarrow\; \theta_0{:}{=}0.2714,\ \theta_1{:}{=}0.8899$}\\
+			\midrule
+			It & $\theta_0$ & $\theta_1$ & $x_i$ & $y_i$ & $\hat y_i$ & $e_i$ & $e_i^2$ & $e_i x_i$\\
+			 &  &  &  &  & $\theta_0+\theta_1 x_i$ & $\hat y_i-y_i$ &  & \\
+			\midrule
+			% ---------------- Iteration 4 ----------------
+			\multirow{5}{*}{4} & \multirow{5}{*}{$0.2714$} & \multirow{5}{*}{$0.8899$}
+			& 1 & 1 & $1.1614$ & $0.1614$  & $0.0260$ & $0.1614$\\
+			& & & 2 & 3 & $2.0513$ & $-0.9487$ & $0.9001$ & $-1.8974$\\
+			& & & 3 & 2 & $2.9412$ & $0.9412$  & $0.8859$ & $2.8236$\\
+			& & & 4 & 5 & $3.8311$ & $-1.1689$ & $1.3663$ & $-4.6755$\\
+			& & & 5 & 4 & $4.7210$ & $0.7210$  & $0.5199$ & $3.6052$\\
+			\cmidrule(l){4-9}
+			\multicolumn{6}{@{}r}{$\textstyle\sum$\;=} & $-0.2940$ & $3.6981$ & $0.0172$\\
+			 &  &  &  &  &  &  &  & \\
+			\multicolumn{9}{@{}l}{\;\;$J=\tfrac{3.6981}{10}=0.3698,\quad
+				g_0=\tfrac{-0.2940}{5}=-0.0588,\quad g_1=\tfrac{0.0172}{5}=0.0034
+				\;\Rightarrow\; \theta_0{:}{=}0.2773,\ \theta_1{:}{=}0.8896$}\\
+		\end{longtable}
+	\end{center}
+	
+	\noindent\textbf{How to read one iteration (take iteration~0).}
+	All parameters start at zero, so every prediction $\hat y_i=0$ and each error
+	is simply $e_i=-y_i$. Squaring and summing the errors gives
+	$\sum e_i^2=55$, hence $J=55/10=5.5$. The two gradients are the column means
+	$g_0=\sum e_i/5=-3$ and $g_1=\sum e_i x_i/5=-10.6$. Stepping opposite the
+	gradient, $\theta_0=0-0.1(-3)=0.3$ and $\theta_1=0-0.1(-10.6)=1.06$, which are
+	exactly the values heading iteration~1. Every subsequent block repeats this
+	identical recipe.
+	
+	\section{Discussion}
+	Within a single step the cost collapses from $5.5$ to $0.54$, and the slope
+	$\theta_1$ locks onto its optimal value $\approx0.89$ within a few iterations.
+	The intercept $\theta_0$, however, drifts only slowly toward its true value
+	$0.6$. This is the classic symptom of \emph{unscaled features}: because $x$
+	ranges over $1$--$5$, the cost bowl is highly elongated and gradient descent
+	zig-zags. Standardizing $x$ first would let both parameters converge together
+	in a handful of steps. Given enough iterations the trajectory converges to the
+	closed-form optimum $(0.6,\,0.8)$ with minimum cost $J=3.6/10=0.36$.
+	
+	\begin{figure}[ht]
+		\centering
+		\begin{tikzpicture}
+			\begin{axis}[
+				width=11cm,height=6.5cm,
+				xlabel={Iteration},ylabel={Cost $J(\bm\theta)$},
+				xmin=0,xmax=5,ymin=0,ymax=6,
+				grid=both,mark size=2pt]
+				\addplot[thick,blue,mark=*]
+				coordinates {(0,5.5)(1,0.5428)(2,0.37626)(3,0.37034)(4,0.36981)(5,0.36948)};
+			\end{axis}
+		\end{tikzpicture}
+		\caption{Cost versus iteration for gradient descent. The rapid initial drop and
+			subsequent flattening are typical of convergence toward the global minimum.}
+		\label{fig:costiter}
+	\end{figure}
+	
+	%==============================================================================
+	\chapter{MATLAB Implementation}
+	%==============================================================================
+	
+	The following script reproduces both solutions and the two figures.
+	
+	\begin{lstlisting}[style=matlab,caption={Linear regression in MATLAB.}]
 % ----- Data -----
 x = [1;2;3;4;5];      % feature (column vector)
 y = [1;3;2;5;4];      % target
@@ -1049,7 +1067,7 @@ X = [ones(m,1), x];   % design matrix with intercept column
 % ----- 1) Closed-form (normal equation) -----
 theta_cf = (X' * X) \ (X' * y);   % '\' solves without explicit inverse
 fprintf('Closed form:  theta0 = %.4f, theta1 = %.4f\n', ...
-        theta_cf(1), theta_cf(2));
+theta_cf(1), theta_cf(2));
 
 % ----- 2) Gradient descent -----
 theta = [0; 0];
@@ -1057,14 +1075,14 @@ alpha = 0.1;
 iters = 50;
 Jhist = zeros(iters,1);
 for k = 1:iters
-    h    = X * theta;                 % predictions
-    err  = h - y;                     % residuals
-    grad = (1/m) * (X' * err);        % gradient vector
-    theta = theta - alpha * grad;     % simultaneous update
-    Jhist(k) = (1/(2*m)) * (err' * err);
+	h    = X * theta;                 % predictions
+	err  = h - y;                     % residuals
+	grad = (1/m) * (X' * err);        % gradient vector
+	theta = theta - alpha * grad;     % simultaneous update
+	Jhist(k) = (1/(2*m)) * (err' * err);
 end
 fprintf('Grad descent: theta0 = %.4f, theta1 = %.4f\n', ...
-        theta(1), theta(2));
+theta(1), theta(2));
 
 % ----- 3) Cost vs iteration -----
 figure; plot(1:iters, Jhist, 'b-o','LineWidth',1.2);
@@ -1075,14 +1093,14 @@ figure; scatter(x, y, 60, 'filled'); hold on;
 xx = linspace(0, 6, 100);
 plot(xx, theta_cf(1) + theta_cf(2)*xx, 'r-', 'LineWidth', 1.5);
 xlabel('x'); ylabel('y'); legend('data','fit'); title('Regression Line'); grid on;
-\end{lstlisting}
-
-%==============================================================================
-\chapter{Python Implementation}
-%==============================================================================
-
-\section{Using NumPy and Matplotlib}
-\begin{lstlisting}[style=python,caption={Closed form and gradient descent with NumPy.}]
+	\end{lstlisting}
+	
+	%==============================================================================
+	\chapter{Python Implementation}
+	%==============================================================================
+	
+	\section{Using NumPy and Matplotlib}
+	\begin{lstlisting}[style=python,caption={Closed form and gradient descent with NumPy.}]
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -1101,11 +1119,11 @@ theta = np.zeros(2)
 alpha, iters = 0.1, 50
 J_hist = []
 for _ in range(iters):
-    err  = X @ theta - y
-    grad = (X.T @ err) / m
-    theta -= alpha * grad
-    J_hist.append((err @ err) / (2 * m))
-print(f"Grad descent: theta0={theta[0]:.4f}, theta1={theta[1]:.4f}")
+		err  = X @ theta - y
+		grad = (X.T @ err) / m
+		theta -= alpha * grad
+		J_hist.append((err @ err) / (2 * m))
+		print(f"Grad descent: theta0={theta[0]:.4f}, theta1={theta[1]:.4f}")
 
 # ----- 3) Plots -----
 plt.figure(); plt.plot(J_hist, 'b-o'); plt.xlabel("iteration")
@@ -1116,10 +1134,10 @@ xx = np.linspace(0, 6, 100)
 plt.plot(xx, theta_cf[0] + theta_cf[1]*xx, 'r', label="fit")
 plt.xlabel("x"); plt.ylabel("y"); plt.legend(); plt.grid(True)
 plt.show()
-\end{lstlisting}
-
-\section{Using Scikit-learn}
-\begin{lstlisting}[style=python,caption={The same fit in three lines with scikit-learn.}]
+	\end{lstlisting}
+	
+	\section{Using Scikit-learn}
+	\begin{lstlisting}[style=python,caption={The same fit in three lines with scikit-learn.}]
 from sklearn.linear_model import LinearRegression
 import numpy as np
 
@@ -1130,153 +1148,153 @@ model = LinearRegression().fit(x, y)
 print("intercept theta0 =", model.intercept_)   # ~0.6
 print("slope     theta1 =", model.coef_[0])      # ~0.8
 print("R^2 =", model.score(x, y))                # 0.64
-\end{lstlisting}
-
-Both implementations return $\theta_0\approx0.6$, $\theta_1\approx0.8$, matching
-the hand computation of Chapter~\ref{ch:cfexample}.
-
-%==============================================================================
-\chapter{Comparison: Closed Form vs Gradient Descent}
-%==============================================================================
-
-\begin{center}
-\renewcommand{\arraystretch}{1.25}
-\begin{tabular}{@{}p{5.4cm}p{5.4cm}@{}}
-\toprule
-\textbf{Closed Form (Normal Equation)} & \textbf{Gradient Descent}\\
-\midrule
-Exact solution in one shot.            & Iterative approximation.\\
-No learning rate to tune.              & Must choose learning rate $\alpha$.\\
-Requires the matrix inverse
-$(\Xmat^{\!\top}\Xmat)^{-1}$.           & No matrix inversion needed.\\
-Cost $\mathcal{O}(n^3)$ in the number
-of features $n$.                       & Cost $\mathcal{O}(k\,mn)$ for $k$
-                                          iterations; scales well.\\
-Fast and ideal for small feature sets. & Suitable for very large datasets and
-                                          many features.\\
-Fails/unstable if $\Xmat^{\!\top}\Xmat$
-is singular.                           & Still works (with care) via variants
-                                          and regularization.\\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\paragraph{Rule of thumb.} Use the normal equation when the number of features
-is small (say $n\lesssim 10^4$); switch to (stochastic) gradient descent for
-high-dimensional or streaming data.
-
-%==============================================================================
-\chapter{Exercises}
-%==============================================================================
-
-\section{Solved Problems}
-
-\begin{example}[Manual fit]
-Fit a line to $x=(0,1,2,3)$, $y=(1,2,3,4)$.\\
-\textbf{Solution.} $\xbar=1.5,\ \ybar=2.5$. Deviations of $x$: $-1.5,-0.5,0.5,1.5$;
-of $y$: $-1.5,-0.5,0.5,1.5$. Thus $S_{xy}=2.25+0.25+0.25+2.25=5$ and
-$S_{xx}=5$, so $\theta_1=5/5=1$ and $\theta_0=2.5-1(1.5)=1$. Fit:
-$\hat y=1+x$ (a perfect fit, $R^2=1$).
-\end{example}
-
-\begin{example}[Effect of an outlier]
-Take the dataset of Chapter~\ref{ch:cfexample} but change $y_4$ from $5$ to
-$50$. Qualitatively, what happens to the slope? \\
-\textbf{Solution.} The point $(4,50)$ has a large positive deviation
-$y_4-\ybar$, injecting a large positive term into $S_{xy}$ and pulling the
-slope sharply upward. Squared-error loss is highly sensitive to outliers; a
-robust loss (e.g.\ Huber) would resist this.
-\end{example}
-
-\begin{example}[One gradient-descent step]
-For $x=(1,2)$, $y=(1,2)$, $\theta=(0,0)$, $\alpha=0.1$, compute one update.\\
-\textbf{Solution.} $m=2$. Errors $e=(-1,-2)$, $g_0=(-1-2)/2=-1.5$,
-$g_1=(-1\cdot1-2\cdot2)/2=-2.5$. Update:
-$\theta_0=0-0.1(-1.5)=0.15$, $\theta_1=0-0.1(-2.5)=0.25$.
-\end{example}
-
-\begin{example}[Proof: line passes through the centroid]
-Show the least-squares line satisfies $\ybar=\theta_0+\theta_1\xbar$.\\
-\textbf{Solution.} This is exactly the rearranged first normal equation
-\eqref{eq:theta0}, obtained by setting $\partial S/\partial\theta_0=0$.
-\end{example}
-
-\begin{example}[$R^2=r^2$]
-Verify $R^2=r^2$ for the Chapter~\ref{ch:cfexample} data.\\
-\textbf{Solution.} $r=0.8\Rightarrow r^2=0.64$; and
-$R^2=1-\text{SSE}/S_{yy}=1-3.6/10=0.64$. \checkmark
-\end{example}
-
-\section{Unsolved Problems}
-
-\begin{exercise}[Manual calculation]
-Fit $\hat y=\theta_0+\theta_1x$ to $x=(2,4,6,8)$, $y=(3,7,5,10)$ using the
-covariance/variance formulas. Report $\theta_0,\theta_1$ and $R^2$.
-\end{exercise}
-
-\begin{exercise}[Prediction]
-Using the model $\hat y=0.6+0.8x$ from Chapter~\ref{ch:cfexample}, predict the
-price for a house of size $x=6$ and state one reason such extrapolation may be
-unreliable.
-\end{exercise}
-
-\begin{exercise}[Learning-rate experiment]
-For the dataset of Chapter~\ref{ch:gdexample}, run gradient descent with
-$\alpha\in\{0.01,\,0.1,\,0.4\}$. For which value does the cost diverge? Explain.
-\end{exercise}
-
-\begin{exercise}[Derivation]
-Starting from $J(\vw)=\frac{1}{2m}(\Xmat\vw-\vy)^{\!\top}(\Xmat\vw-\vy)$, derive
-$\nabla J(\vw)=\frac1m\Xmat^{\!\top}(\Xmat\vw-\vy)$ and hence the normal
-equation.
-\end{exercise}
-
-\begin{exercise}[Proof-based]
-Prove that $\Xmat^{\!\top}\Xmat$ is positive semi-definite and give a condition
-under which it is positive definite (hence invertible).
-\end{exercise}
-
-\begin{exercise}[Conceptual]
-Explain why the mean squared error is preferred over the mean absolute error
-when a smooth, differentiable optimization landscape is desired, and name one
-situation where mean absolute error is nonetheless preferable.
-\end{exercise}
-
-\begin{exercise}[Feature scaling]
-Standardize the feature $x$ of Chapter~\ref{ch:gdexample} to zero mean and unit
-variance, re-run five iterations of gradient descent, and compare the
-convergence speed of $\theta_0$ and $\theta_1$ with the unscaled case.
-\end{exercise}
-
-\begin{exercise}[Coding]
-Implement ridge regression by modifying the normal equation to
-$\vw=(\Xmat^{\!\top}\Xmat+\lambda\mathbf{I})^{-1}\Xmat^{\!\top}\vy$ (do not
-penalize the intercept) and study the effect of $\lambda$ on the fitted slope.
-\end{exercise}
-
-%==============================================================================
-\appendix
-\chapter{Notation Summary}
-%==============================================================================
-\begin{center}
-\begin{tabular}{@{}ll@{}}
-\toprule
-Symbol & Meaning\\
-\midrule
-$m$ & number of training examples\\
-$n$ & number of features\\
-$x^{(i)},\,y^{(i)}$ & feature(s) and target of the $i$-th example\\
-$\vw=(\theta_0,\dots,\theta_n)$ & parameter (weight) vector\\
-$\htheta(\vx)$ & hypothesis / prediction\\
-$\Xmat$ & design matrix, $\R^{m\times(n+1)}$\\
-$\vy$ & target vector, $\R^{m}$\\
-$\mathbf{r}=\Xmat\vw-\vy$ & residual vector\\
-$J(\vw)$ & mean-squared-error cost\\
-$\alpha$ & learning rate\\
-$S_{xx},S_{xy}$ & $\sum(x_i-\xbar)^2$, $\sum(x_i-\xbar)(y_i-\ybar)$\\
-$r,\ R^2$ & correlation coefficient, coefficient of determination\\
-\bottomrule
-\end{tabular}
-\end{center}
-
+	\end{lstlisting}
+	
+	Both implementations return $\theta_0\approx0.6$, $\theta_1\approx0.8$, matching
+	the hand computation of Chapter~\ref{ch:cfexample}.
+	
+	%==============================================================================
+	\chapter{Comparison: Closed Form vs Gradient Descent}
+	%==============================================================================
+	
+	\begin{center}
+		\renewcommand{\arraystretch}{1.25}
+		\begin{tabular}{@{}p{5.4cm}p{5.4cm}@{}}
+			\toprule
+			\textbf{Closed Form (Normal Equation)} & \textbf{Gradient Descent}\\
+			\midrule
+			Exact solution in one shot.            & Iterative approximation.\\
+			No learning rate to tune.              & Must choose learning rate $\alpha$.\\
+			Requires the matrix inverse
+			$(\Xmat^{\!\top}\Xmat)^{-1}$.           & No matrix inversion needed.\\
+			Cost $\mathcal{O}(n^3)$ in the number
+			of features $n$.                       & Cost $\mathcal{O}(k\,mn)$ for $k$
+			iterations; scales well.\\
+			Fast and ideal for small feature sets. & Suitable for very large datasets and
+			many features.\\
+			Fails/unstable if $\Xmat^{\!\top}\Xmat$
+			is singular.                           & Still works (with care) via variants
+			and regularization.\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	
+	\paragraph{Rule of thumb.} Use the normal equation when the number of features
+	is small (say $n\lesssim 10^4$); switch to (stochastic) gradient descent for
+	high-dimensional or streaming data.
+	
+	%==============================================================================
+	\chapter{Exercises}
+	%==============================================================================
+	
+	\section{Solved Problems}
+	
+	\begin{example}[Manual fit]
+		Fit a line to $x=(0,1,2,3)$, $y=(1,2,3,4)$.\\
+		\textbf{Solution.} $\xbar=1.5,\ \ybar=2.5$. Deviations of $x$: $-1.5,-0.5,0.5,1.5$;
+		of $y$: $-1.5,-0.5,0.5,1.5$. Thus $S_{xy}=2.25+0.25+0.25+2.25=5$ and
+		$S_{xx}=5$, so $\theta_1=5/5=1$ and $\theta_0=2.5-1(1.5)=1$. Fit:
+		$\hat y=1+x$ (a perfect fit, $R^2=1$).
+	\end{example}
+	
+	\begin{example}[Effect of an outlier]
+		Take the dataset of Chapter~\ref{ch:cfexample} but change $y_4$ from $5$ to
+		$50$. Qualitatively, what happens to the slope? \\
+		\textbf{Solution.} The point $(4,50)$ has a large positive deviation
+		$y_4-\ybar$, injecting a large positive term into $S_{xy}$ and pulling the
+		slope sharply upward. Squared-error loss is highly sensitive to outliers; a
+		robust loss (e.g.\ Huber) would resist this.
+	\end{example}
+	
+	\begin{example}[One gradient-descent step]
+		For $x=(1,2)$, $y=(1,2)$, $\theta=(0,0)$, $\alpha=0.1$, compute one update.\\
+		\textbf{Solution.} $m=2$. Errors $e=(-1,-2)$, $g_0=(-1-2)/2=-1.5$,
+		$g_1=(-1\cdot1-2\cdot2)/2=-2.5$. Update:
+		$\theta_0=0-0.1(-1.5)=0.15$, $\theta_1=0-0.1(-2.5)=0.25$.
+	\end{example}
+	
+	\begin{example}[Proof: line passes through the centroid]
+		Show the least-squares line satisfies $\ybar=\theta_0+\theta_1\xbar$.\\
+		\textbf{Solution.} This is exactly the rearranged first normal equation
+		\eqref{eq:theta0}, obtained by setting $\partial S/\partial\theta_0=0$.
+	\end{example}
+	
+	\begin{example}[$R^2=r^2$]
+		Verify $R^2=r^2$ for the Chapter~\ref{ch:cfexample} data.\\
+		\textbf{Solution.} $r=0.8\Rightarrow r^2=0.64$; and
+		$R^2=1-\text{SSE}/S_{yy}=1-3.6/10=0.64$. \checkmark
+	\end{example}
+	
+	\section{Unsolved Problems}
+	
+	\begin{exercise}[Manual calculation]
+		Fit $\hat y=\theta_0+\theta_1x$ to $x=(2,4,6,8)$, $y=(3,7,5,10)$ using the
+		covariance/variance formulas. Report $\theta_0,\theta_1$ and $R^2$.
+	\end{exercise}
+	
+	\begin{exercise}[Prediction]
+		Using the model $\hat y=0.6+0.8x$ from Chapter~\ref{ch:cfexample}, predict the
+		price for a house of size $x=6$ and state one reason such extrapolation may be
+		unreliable.
+	\end{exercise}
+	
+	\begin{exercise}[Learning-rate experiment]
+		For the dataset of Chapter~\ref{ch:gdexample}, run gradient descent with
+		$\alpha\in\{0.01,\,0.1,\,0.4\}$. For which value does the cost diverge? Explain.
+	\end{exercise}
+	
+	\begin{exercise}[Derivation]
+		Starting from $J(\vw)=\frac{1}{2m}(\Xmat\vw-\vy)^{\!\top}(\Xmat\vw-\vy)$, derive
+		$\nabla J(\vw)=\frac1m\Xmat^{\!\top}(\Xmat\vw-\vy)$ and hence the normal
+		equation.
+	\end{exercise}
+	
+	\begin{exercise}[Proof-based]
+		Prove that $\Xmat^{\!\top}\Xmat$ is positive semi-definite and give a condition
+		under which it is positive definite (hence invertible).
+	\end{exercise}
+	
+	\begin{exercise}[Conceptual]
+		Explain why the mean squared error is preferred over the mean absolute error
+		when a smooth, differentiable optimization landscape is desired, and name one
+		situation where mean absolute error is nonetheless preferable.
+	\end{exercise}
+	
+	\begin{exercise}[Feature scaling]
+		Standardize the feature $x$ of Chapter~\ref{ch:gdexample} to zero mean and unit
+		variance, re-run five iterations of gradient descent, and compare the
+		convergence speed of $\theta_0$ and $\theta_1$ with the unscaled case.
+	\end{exercise}
+	
+	\begin{exercise}[Coding]
+		Implement ridge regression by modifying the normal equation to
+		$\vw=(\Xmat^{\!\top}\Xmat+\lambda\mathbf{I})^{-1}\Xmat^{\!\top}\vy$ (do not
+		penalize the intercept) and study the effect of $\lambda$ on the fitted slope.
+	\end{exercise}
+	
+	%==============================================================================
+	\appendix
+	\chapter{Notation Summary}
+	%==============================================================================
+	\begin{center}
+		\begin{tabular}{@{}ll@{}}
+			\toprule
+			Symbol & Meaning\\
+			\midrule
+			$m$ & number of training examples\\
+			$n$ & number of features\\
+			$x^{(i)},\,y^{(i)}$ & feature(s) and target of the $i$-th example\\
+			$\vw=(\theta_0,\dots,\theta_n)$ & parameter (weight) vector\\
+			$\htheta(\vx)$ & hypothesis / prediction\\
+			$\Xmat$ & design matrix, $\R^{m\times(n+1)}$\\
+			$\vy$ & target vector, $\R^{m}$\\
+			$\mathbf{r}=\Xmat\vw-\vy$ & residual vector\\
+			$J(\vw)$ & mean-squared-error cost\\
+			$\alpha$ & learning rate\\
+			$S_{xx},S_{xy}$ & $\sum(x_i-\xbar)^2$, $\sum(x_i-\xbar)(y_i-\ybar)$\\
+			$r,\ R^2$ & correlation coefficient, coefficient of determination\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	
 \end{document}
