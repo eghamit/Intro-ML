@@ -659,6 +659,178 @@ matches single linkage in step~3 ($A$ joins $(CE)$)---illustrating how average
 linkage sits ``between'' the two extremes.
 
 %==============================================================================
+\chapter{Worked Example 4: Divisive Clustering --- DIANA (by hand)}
+\label{ch:diana}
+%==============================================================================
+
+All previous examples were \emph{agglomerative} (bottom-up). We now work the
+\textbf{divisive} (top-down) approach on the \emph{same} data \eqref{eq:D0}
+using \textbf{DIANA} (DIvisive ANAlysis, Kaufman \& Rousseeuw). Divisive
+clustering starts with every object in one big cluster and repeatedly
+\emph{splits} a cluster into two.
+
+\section{The DIANA Algorithm}
+The subtlety of divisive clustering is that a cluster of $p$ objects can be cut
+into two non-empty parts in $2^{p-1}-1$ ways---far too many to test. DIANA
+avoids this with a clever \emph{splinter-group} heuristic.
+
+\begin{center}
+\fbox{\parbox{0.92\textwidth}{
+\textbf{DIANA (one split of a cluster $\C$)}
+\begin{enumerate}[nosep,leftmargin=2.2em]
+  \item \textbf{Seed.} Find the object with the largest average dissimilarity
+        to the rest of $\C$; move it out to start a new \emph{splinter group}
+        $\C_{\text{new}}$. The rest form the \emph{old party} $\C_{\text{old}}$.
+  \item \textbf{Reassign.} For every object $x\in\C_{\text{old}}$ compute
+        \[
+        D_x=\underbrace{a(x,\C_{\text{old}}\setminus\{x\})}_{\text{avg dist to old party}}
+            -\underbrace{a(x,\C_{\text{new}})}_{\text{avg dist to splinter}} ,
+        \]
+        where $a(x,S)=\frac{1}{|S|}\sum_{y\in S}d(x,y)$ is the average distance
+        from $x$ to set $S$.
+  \item If $\max_x D_x>0$, move that object to the splinter group and repeat
+        step~2. Otherwise \textbf{stop}: the split is
+        $\C\to\C_{\text{old}}\mid\C_{\text{new}}$.
+\end{enumerate}
+\textbf{Which cluster to split next?} Among all current clusters, pick the one
+with the largest \emph{diameter} (its maximum internal pairwise distance).
+Repeat until every object is a singleton (or a stopping level is reached).
+}}
+\end{center}
+
+\noindent
+Intuitively, $D_x>0$ means $x$ is on average \emph{closer} to the breakaway
+splinter group than to the old party, so it should defect.
+
+\section{Split 1 --- Divide the Root $\{A,B,C,D,E\}$}
+The whole set has diameter $\max_{ij}D_{ij}=11$ (the pair $A,E$), so it is the
+cluster to split.
+
+\subsection*{Seeding the splinter group}
+Compute each object's average dissimilarity to the other four (row averages of
+\eqref{eq:D0}):
+\begin{center}
+\begin{tabular}{@{}cccccc@{}}
+\toprule
+Object & $A$ & $B$ & $C$ & $D$ & $E$\\
+\midrule
+Avg.\ dissimilarity & $\tfrac{29}{4}{=}7.25$ & $\tfrac{31}{4}{=}7.75$
+ & $\tfrac{21}{4}{=}5.25$ & $\tfrac{28}{4}{=}7.00$ & $\tfrac{31}{4}{=}7.75$\\
+\bottomrule
+\end{tabular}
+\end{center}
+The maximum is $7.75$, attained by $B$ and $E$ (a tie). We seed with $B$; the
+final split is the same for either choice. So
+$\C_{\text{new}}=\{B\}$, $\C_{\text{old}}=\{A,C,D,E\}$.
+
+\subsection*{Reassignment round 1 (splinter $=\{B\}$)}
+\begin{center}
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+$x$ & $a(x,\C_{\text{old}}\setminus\{x\})$ & $a(x,\{B\})$ & $D_x$ & \\
+\midrule
+$A$ & $\tfrac{3+6+11}{3}=6.6667$ & $9$  & $-2.3333$ & \\
+$C$ & $\tfrac{3+9+2}{3}=4.6667$  & $7$  & $-2.3333$ & \\
+$D$ & $\tfrac{6+9+8}{3}=7.6667$  & $5$  & $\mathbf{+2.6667}$ & $\leftarrow$ max $>0$\\
+$E$ & $\tfrac{11+2+8}{3}=7.0000$ & $10$ & $-3.0000$ & \\
+\bottomrule
+\end{tabular}
+\end{center}
+$D_D=+2.6667>0$, so \textbf{move $D$} into the splinter:
+$\C_{\text{new}}=\{B,D\}$, $\C_{\text{old}}=\{A,C,E\}$.
+
+\subsection*{Reassignment round 2 (splinter $=\{B,D\}$)}
+\begin{center}
+\begin{tabular}{@{}cccc@{}}
+\toprule
+$x$ & $a(x,\C_{\text{old}}\setminus\{x\})$ & $a(x,\{B,D\})$ & $D_x$\\
+\midrule
+$A$ & $\tfrac{3+11}{2}=7.0$ & $\tfrac{9+6}{2}=7.5$  & $-0.5$\\
+$C$ & $\tfrac{3+2}{2}=2.5$  & $\tfrac{7+9}{2}=8.0$  & $-5.5$\\
+$E$ & $\tfrac{11+2}{2}=6.5$ & $\tfrac{10+8}{2}=9.0$ & $-2.5$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Now $\max_x D_x=-0.5\le0$, so we \textbf{stop}. The root splits as
+\[
+\{A,B,C,D,E\}\;\longrightarrow\;\{A,C,E\}\ \mid\ \{B,D\}\qquad(\text{at diameter }11).
+\]
+
+\section{Split 2 --- Divide $\{A,C,E\}$}
+The two current clusters are $\{A,C,E\}$ (diameter $\max(3,11,2)=11$) and
+$\{B,D\}$ (diameter $5$). The larger diameter is $\{A,C,E\}$, so we split it.
+Average dissimilarities within $\{A,C,E\}$:
+\[
+a(A)=\tfrac{3+11}{2}=7.0,\qquad a(C)=\tfrac{3+2}{2}=2.5,\qquad
+a(E)=\tfrac{11+2}{2}=6.5 .
+\]
+Seed with $A$ (largest). Splinter $=\{A\}$, old $=\{C,E\}$:
+\[
+D_C=a(C,\{E\})-d(C,A)=2-3=-1,\qquad
+D_E=a(E,\{C\})-d(E,A)=2-11=-9 .
+\]
+Both $\le0$, so split immediately:
+\[
+\{A,C,E\}\;\longrightarrow\;\{C,E\}\ \mid\ \{A\}\qquad(\text{at diameter }11).
+\]
+
+\section{Splits 3 and 4 --- The Two-Element Clusters}
+Only two-object clusters remain to break; each splits trivially into its two
+singletons at its own diameter:
+\[
+\{B,D\}\;\longrightarrow\;\{B\}\mid\{D\}\ (\text{diam }5),\qquad
+\{C,E\}\;\longrightarrow\;\{C\}\mid\{E\}\ (\text{diam }2).
+\]
+
+\section{Split Summary and Divisive Tree}
+\begin{center}
+\begin{tabular}{@{}clcc@{}}
+\toprule
+Split & Cluster divided & Diameter & Resulting parts\\
+\midrule
+1 & $\{A,B,C,D,E\}$ & $11$ & $\{A,C,E\}$, $\{B,D\}$\\
+2 & $\{A,C,E\}$     & $11$ & $\{A\}$, $\{C,E\}$\\
+3 & $\{B,D\}$       & $5$  & $\{B\}$, $\{D\}$\\
+4 & $\{C,E\}$       & $2$  & $\{C\}$, $\{E\}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+   every node/.style={draw,rounded corners,inner sep=3pt,font=\footnotesize},
+   edge/.style={-{Latex[length=2mm]},draw,thick}]
+\node (root) at (4,0)      {$\{A,B,C,D,E\}$};
+\node (ace)  at (2,-1.7)   {$\{A,C,E\}$};
+\node (bd)   at (6,-1.7)   {$\{B,D\}$};
+\node (a)    at (0.7,-3.4) {$\{A\}$};
+\node (ce)   at (3,-3.4)   {$\{C,E\}$};
+\node (b)    at (5,-3.4)   {$\{B\}$};
+\node (dd)   at (7,-3.4)   {$\{D\}$};
+\node (c)    at (2.4,-5.1) {$\{C\}$};
+\node (e)    at (3.6,-5.1) {$\{E\}$};
+\draw[edge] (root)--(ace);  \draw[edge] (root)--(bd);
+\draw[edge] (ace)--(a);     \draw[edge] (ace)--(ce);
+\draw[edge] (bd)--(b);      \draw[edge] (bd)--(dd);
+\draw[edge] (ce)--(c);      \draw[edge] (ce)--(e);
+\end{tikzpicture}
+\caption{Divisive (DIANA) tree, built \emph{top-down}: the root is split first
+(split~1), then its parts, and so on. Arrows point from a parent cluster to the
+two clusters it divides into.}
+\label{fig:dianatree}
+\end{figure}
+
+\begin{remark}[DIANA vs.\ AGNES on this data]
+The nested structure in Figure~\ref{fig:dianatree} is \emph{identical} to the
+single-linkage agglomerative tree of Figure~\ref{fig:singdend}: both give
+$\bigl(\{A\},\{C,E\}\bigr),\{B,D\}$. Here top-down and bottom-up agree, but in
+general they need not: divisive methods consider the \emph{global} structure of
+a cluster before cutting, whereas agglomerative methods only ever look at the
+closest pair, so on other datasets the two families can produce different trees.
+\end{remark}
+
+%==============================================================================
 \chapter{Choosing Clusters, Pros \& Cons, and Code}
 %==============================================================================
 
