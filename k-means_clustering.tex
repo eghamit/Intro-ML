@@ -52,8 +52,7 @@
 %------------------------------- Handy macros ---------------------------------
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\vx}{\mathbf{x}}
-\newcommand{\va}{\mathbf{a}}
-\newcommand{\vb}{\mathbf{b}}
+\newcommand{\vy}{\mathbf{y}}
 \newcommand{\vmu}{\bm{\mu}}
 \newcommand{\C}{\mathcal{C}}
 \newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
@@ -163,14 +162,15 @@ where $n$ is the number of features. $k$-means needs two ingredients: a way to
 measure how far two points are, and a way to summarize a group of points.
 
 \section{Euclidean Distance}
-For two points $\va=(a_1,\dots,a_n)$ and $\vb=(b_1,\dots,b_n)$,
+For two points $\vx=(x_1,\dots,x_n)$ and $\vy=(y_1,\dots,y_n)$,
 \begin{equation}
-d(\va,\vb)=\norm{\va-\vb}=\sqrt{\sum_{k=1}^{n}(a_k-b_k)^2}.
+d(\vx,\vy)=\norm{\vx-\vy}=\sqrt{\sum_{k=1}^{n}(x_k-y_k)^2}.
 \label{eq:euclid}
 \end{equation}
 In the plane ($n=2$) this is the ordinary
-$\sqrt{(a_1-b_1)^2+(a_2-b_2)^2}$. Here $\va,\vb$ are two \emph{different points};
-$a_k$ is the $k$-th coordinate of the single point $\va$.
+$\sqrt{(x_1-y_1)^2+(x_2-y_2)^2}$. Here $\vx$ and $\vy$ are two \emph{different
+points}, while $x_k$ is the $k$-th coordinate of the single point $\vx$ (not a
+separate point).
 
 \begin{remark}[Squared distance suffices for assignment]
 $k$-means assigns each point to its \emph{nearest} centroid. Because the square
@@ -642,7 +642,7 @@ $k$ & number of clusters (chosen in advance)\\
 $\vx^{(i)}\in\R^n$ & the $i$-th data point\\
 $\C_j$ & the $j$-th cluster; $|\C_j|$ its size\\
 $\vmu_j$ & centroid (mean) of cluster $\C_j$\\
-$d(\va,\vb)=\norm{\va-\vb}$ & Euclidean distance between two points\\
+$d(\vx,\vy)=\norm{\vx-\vy}$ & Euclidean distance between two points\\
 $J$ & within-cluster sum of squares (WCSS / inertia)\\
 \bottomrule
 \end{tabular}
