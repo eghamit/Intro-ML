@@ -488,10 +488,23 @@ D   & 6 & 5 & 0 & 8\\
 
 \section{Step 2 --- Second Merge}
 Smallest entry in $\mathbf D^{(1)}$ is $d(A,(CE))=3$. \textbf{Merge $A$ with
-$(CE)$} into $(ACE)$ at height $3$. Update by minima:
+$(CE)$} into $(ACE)$ at height $3$. The update rule is the same single-linkage
+minimum as before, but now one of the two things being merged is \emph{itself a
+cluster}, $(CE)$. So for any remaining cluster $X$,
 \[
-d((ACE),B)=\min(9,7)=7,\qquad d((ACE),D)=\min(6,8)=6.
+d\bigl((ACE),X\bigr)=\min\bigl\{\,d(A,X),\ d((CE),X)\,\bigr\},
 \]
+i.e.\ we take, column by column, the smaller of row $A$ and row $(CE)$ from
+$\mathbf D^{(1)}$. Substituting the two remaining columns $X=B$ and $X=D$:
+\[
+\begin{aligned}
+d\bigl((ACE),B\bigr)&=\min\bigl\{\,d(A,B),\ d((CE),B)\,\bigr\}=\min\{9,\,7\}=7,\\[2pt]
+d\bigl((ACE),D\bigr)&=\min\bigl\{\,d(A,D),\ d((CE),D)\,\bigr\}=\min\{6,\,8\}=6.
+\end{aligned}
+\]
+The values $9,7$ and $6,8$ are read straight from rows $A$ and $(CE)$ of
+$\mathbf D^{(1)}$. Rows/columns $A$ and $(CE)$ are then deleted and replaced by
+the single new row/column $(ACE)$:
 \begin{equation}
 \mathbf{D}^{(2)}=
 \begin{array}{c|ccc}
