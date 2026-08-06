@@ -53,6 +53,8 @@
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\vx}{\mathbf{x}}
 \newcommand{\vy}{\mathbf{y}}
+\newcommand{\va}{\mathbf{a}}
+\newcommand{\vb}{\mathbf{b}}
 \newcommand{\C}{\mathcal{C}}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
@@ -172,47 +174,53 @@ obtain any desired number of clusters.
 Every hierarchical method begins from pairwise distances between the objects we
 wish to cluster. We represent each object as a single \emph{point} in
 $n$-dimensional space, where $n$ is the number of features (measurements)
-describing it. Let $\vx$ and $\vy$ be \emph{two such points} (two different
-objects). Being a point of $\R^n$, each one carries $n$ coordinates---one per
-feature---which we write with a subscript:
+describing it.
+
+To state a distance formula we need names for \emph{two arbitrary points}. We
+deliberately do \textbf{not} call them $x$ and $y$: in the plane those letters
+already denote the two \emph{coordinates} of one point, so reusing them as the
+\emph{names} of two points is exactly what causes confusion. Instead we name the
+two points $\va$ and $\vb$---just as the worked examples name the objects
+$A,B,C,\dots$. Being points of $\R^n$, each one carries $n$ coordinates (one per
+feature), which we write with a subscript on the point's own letter:
 \[
-\vx=(x_1,x_2,\dots,x_n),\qquad \vy=(y_1,y_2,\dots,y_n).
+\va=(a_1,a_2,\dots,a_n),\qquad \vb=(b_1,b_2,\dots,b_n).
 \]
-Here $x_k$ is the $k$-th coordinate of the \emph{same} point $\vx$; it is
+Here $a_k$ is the $k$-th coordinate of the \emph{single} point $\va$; it is
 \textbf{not} a separate point. In the familiar plane ($n=2$) this is just the
-usual abscissa/ordinate pair: $\vx=(x_1,x_2)$ is one point and
-$\vy=(y_1,y_2)$ is another, and the distance formulas below reduce to the
-schoolbook $\sqrt{(x_1-y_1)^2+(x_2-y_2)^2}$. For $n>2$ we simply have more
-coordinates per point.
+usual abscissa/ordinate pair: $\va=(a_1,a_2)$ is one point and
+$\vb=(b_1,b_2)$ is another, and the formulas below reduce to the schoolbook
+$\sqrt{(a_1-b_1)^2+(a_2-b_2)^2}$. For $n>2$ we simply have more coordinates per
+point.
 
 \section{Common Distance Measures}
 \begin{definition}[Euclidean distance ($L_2$)]
 \begin{equation}
-d(\vx,\vy)=\sqrt{\sum_{k=1}^{n}(x_k-y_k)^2}.
+d(\va,\vb)=\sqrt{\sum_{k=1}^{n}(a_k-b_k)^2}.
 \label{eq:euclid}
 \end{equation}
 \end{definition}
 \begin{definition}[Manhattan distance ($L_1$, city-block)]
 \[
-d(\vx,\vy)=\sum_{k=1}^{n}\lvert x_k-y_k\rvert .
+d(\va,\vb)=\sum_{k=1}^{n}\lvert a_k-b_k\rvert .
 \]
 \end{definition}
 \begin{definition}[Minkowski distance ($L_p$)]
 \[
-d(\vx,\vy)=\Bigl(\sum_{k=1}^{n}\lvert x_k-y_k\rvert^{p}\Bigr)^{1/p},
+d(\va,\vb)=\Bigl(\sum_{k=1}^{n}\lvert a_k-b_k\rvert^{p}\Bigr)^{1/p},
 \]
 which gives Manhattan for $p=1$ and Euclidean for $p=2$.
 \end{definition}
 \begin{definition}[Cosine dissimilarity]
 \[
-d(\vx,\vy)=1-\frac{\vx^{\!\top}\vy}{\lVert\vx\rVert\,\lVert\vy\rVert},
+d(\va,\vb)=1-\frac{\va^{\!\top}\vb}{\lVert\va\rVert\,\lVert\vb\rVert},
 \]
 useful for text/high-dimensional data where direction matters more than
 magnitude.
 \end{definition}
 
 A valid distance (a \emph{metric}) satisfies non-negativity, symmetry
-$d(\vx,\vy)=d(\vy,\vx)$, identity $d(\vx,\vx)=0$, and the triangle inequality.
+$d(\va,\vb)=d(\vb,\va)$, identity $d(\va,\va)=0$, and the triangle inequality.
 
 \section{The Proximity (Distance) Matrix}
 For $m$ objects the pairwise distances are stored in a symmetric
@@ -329,7 +337,7 @@ $d(\C_i,\C_j)$ between them can be defined in several ways.
 The distance is that of the \emph{closest} pair of points, one from each
 cluster:
 \begin{equation}
-d_{\text{single}}(\C_i,\C_j)=\min_{\vx\in\C_i,\ \vy\in\C_j} d(\vx,\vy).
+d_{\text{single}}(\C_i,\C_j)=\min_{\va\in\C_i,\ \vb\in\C_j} d(\va,\vb).
 \label{eq:single}
 \end{equation}
 Tends to produce long, ``chained'' clusters; sensitive to noise bridges.
@@ -337,7 +345,7 @@ Tends to produce long, ``chained'' clusters; sensitive to noise bridges.
 \item[\textbf{Complete linkage (MAX / farthest neighbour).}]
 The distance is that of the \emph{farthest} pair:
 \begin{equation}
-d_{\text{complete}}(\C_i,\C_j)=\max_{\vx\in\C_i,\ \vy\in\C_j} d(\vx,\vy).
+d_{\text{complete}}(\C_i,\C_j)=\max_{\va\in\C_i,\ \vb\in\C_j} d(\va,\vb).
 \label{eq:complete}
 \end{equation}
 Produces compact, roughly spherical clusters; resists chaining.
@@ -346,7 +354,7 @@ Produces compact, roughly spherical clusters; resists chaining.
 The mean of all inter-cluster pairwise distances:
 \begin{equation}
 d_{\text{average}}(\C_i,\C_j)=\frac{1}{|\C_i|\,|\C_j|}
-   \sum_{\vx\in\C_i}\sum_{\vy\in\C_j} d(\vx,\vy).
+   \sum_{\va\in\C_i}\sum_{\vb\in\C_j} d(\va,\vb).
 \label{eq:average}
 \end{equation}
 A compromise between single and complete linkage.
@@ -1003,7 +1011,7 @@ Symbol & Meaning\\
 \midrule
 $m$ & number of objects to cluster\\
 $\vx^{(i)}\in\R^n$ & the $i$-th object (feature vector)\\
-$d(\vx,\vy)$ & distance between two points\\
+$d(\va,\vb)$ & distance between two points\\
 $\mathbf D$ & proximity (distance) matrix, $m\times m$\\
 $\C_i$ & the $i$-th cluster; $|\C_i|$ its size\\
 $d(\C_i,\C_j)$ & inter-cluster distance (linkage)\\
