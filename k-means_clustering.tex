@@ -461,6 +461,137 @@ in a couple of iterations, with $J$ decreasing monotonically
 $14.8\to2.667\to2.667$, exactly as the theory guarantees.
 
 %==============================================================================
+\chapter{Worked Example: A Larger, Slower Run (5 Iterations)}
+\label{ch:worked2}
+%==============================================================================
+
+The previous example converged in just two useful iterations. To see the
+centroids \emph{crawl} gradually into place, we now cluster \textbf{twelve}
+points with $k=2$ from a deliberately poor start---both seeds tucked in the
+lower-left corner. The cluster boundary then advances one point per iteration,
+and the run takes \textbf{five iterations} to converge.
+
+\section{The Data and Setup}
+\begin{center}
+\begin{tabular}{@{}c|cccccc@{}}
+\toprule
+Point & $P_1$ & $P_2$ & $P_3$ & $P_4$ & $P_5$ & $P_6$\\
+$(x,y)$ & $(1,2)$ & $(2,1)$ & $(2,3)$ & $(3,2)$ & $(4,3)$ & $(5,3)$\\
+\midrule
+Point & $P_7$ & $P_8$ & $P_9$ & $P_{10}$ & $P_{11}$ & $P_{12}$\\
+$(x,y)$ & $(6,4)$ & $(7,5)$ & $(8,4)$ & $(9,5)$ & $(10,6)$ & $(11,5)$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Initial centroids (both in the lower-left):
+$\vmu_1=(1,2)$, $\vmu_2=(2,3)$. As before we assign by squared distance
+$d^2=(x-\mu_x)^2+(y-\mu_y)^2$.
+
+\section{Iteration 1 in Detail}
+\begin{center}
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+Point & $(x,y)$ & $d^2$ to $\vmu_1{=}(1,2)$ & $d^2$ to $\vmu_2{=}(2,3)$ & Assign\\
+\midrule
+$P_1$ & $(1,2)$ & $0$   & $2$   & $C_1$\\
+$P_2$ & $(2,1)$ & $2$   & $4$   & $C_1$\\
+$P_3$ & $(2,3)$ & $2$   & $0$   & $C_2$\\
+$P_4$ & $(3,2)$ & $4$   & $2$   & $C_2$\\
+$P_5$ & $(4,3)$ & $10$  & $4$   & $C_2$\\
+$P_6$ & $(5,3)$ & $17$  & $9$   & $C_2$\\
+$P_7$ & $(6,4)$ & $29$  & $17$  & $C_2$\\
+$P_8$ & $(7,5)$ & $45$  & $29$  & $C_2$\\
+$P_9$ & $(8,4)$ & $53$  & $37$  & $C_2$\\
+$P_{10}$ & $(9,5)$ & $73$  & $53$  & $C_2$\\
+$P_{11}$ & $(10,6)$ & $97$  & $73$  & $C_2$\\
+$P_{12}$ & $(11,5)$ & $109$ & $85$  & $C_2$\\
+\bottomrule
+\end{tabular}
+\end{center}
+So $C_1=\{P_1,P_2\}$ and $C_2=\{P_3,\dots,P_{12}\}$. Updating,
+\[
+\vmu_1=\Bigl(\tfrac{1+2}{2},\tfrac{2+1}{2}\Bigr)=(1.5,1.5),\qquad
+\vmu_2=\Bigl(\tfrac{65}{10},\tfrac{40}{10}\Bigr)=(6.5,4.0),
+\]
+with WCSS $J=97.5$. The right-hand centroid has already jumped far to the right,
+which will pull the next few boundary points across.
+
+\section{Full Evolution (Iterations 1--5)}
+Each row shows the centroids used for the assignment, the resulting membership,
+and the updated centroids/WCSS; the updated centroids become the next row's
+starting centroids.
+\begin{center}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}c cc l l c@{}}
+\toprule
+It & $\vmu_1$ (start) & $\vmu_2$ (start) & $C_1$ & $C_2$ & $J$\\
+\midrule
+1 & $(1,2)$        & $(2,3)$          & $P_1\!-\!P_2$ & $P_3\!-\!P_{12}$ & $97.50$\\
+2 & $(1.5,1.5)$    & $(6.5,4.0)$      & $P_1\!-\!P_4$ & $P_5\!-\!P_{12}$ & $53.88$\\
+3 & $(2.0,2.0)$    & $(7.5,4.375)$    & $P_1\!-\!P_5$ & $P_6\!-\!P_{12}$ & $41.71$\\
+4 & $(2.4,2.2)$    & $(8.0,4.571)$    & $P_1\!-\!P_6$ & $P_7\!-\!P_{12}$ & $34.50$\\
+5 & $(2.833,2.333)$& $(8.5,4.833)$    & $P_1\!-\!P_6$ & $P_7\!-\!P_{12}$ & $34.50$\\
+\bottomrule
+\end{tabular}
+\end{center}
+At iteration~5 the membership (and hence the centroids) is identical to
+iteration~4, so the algorithm has \textbf{converged}. The final clustering is
+\[
+C_1=\{P_1,\dots,P_6\},\ \vmu_1=\bigl(\tfrac{17}{6},\tfrac{7}{3}\bigr)\approx(2.83,2.33);
+\quad
+C_2=\{P_7,\dots,P_{12}\},\ \vmu_2=\bigl(\tfrac{17}{2},\tfrac{29}{6}\bigr)\approx(8.5,4.83);
+\]
+with minimum WCSS $J^\star=34.5$.
+
+\section{Discussion and Figure}
+Notice how one boundary point defects to $C_1$ at each step
+($P_3,P_4$ at iteration~2, then $P_5$, then $P_6$), dragging $\vmu_1$ steadily
+rightward while $\vmu_2$ edges right in response. The cost falls monotonically
+\[
+97.50\;\to\;53.88\;\to\;41.71\;\to\;34.50\;\to\;34.50,
+\]
+never increasing---the convergence guarantee in action. This gradual,
+several-iteration behaviour is typical when the initial centroids are placed
+badly; a spread-out start (e.g.\ $k$-means\texttt{++}) would reach the same
+clusters in fewer steps.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=12cm,height=7cm,
+  xlabel={$x$},ylabel={$y$},
+  xmin=0,xmax=12,ymin=0,ymax=7,grid=both,
+  legend pos=north west,legend cell align=left]
+% final cluster 1
+\addplot[only marks,mark=*,mark size=2.4pt,color=blue]
+  coordinates {(1,2)(2,1)(2,3)(3,2)(4,3)(5,3)};
+\addlegendentry{$C_1=\{P_1,\dots,P_6\}$}
+% final cluster 2
+\addplot[only marks,mark=square*,mark size=2.4pt,color=red!80!black]
+  coordinates {(6,4)(7,5)(8,4)(9,5)(10,6)(11,5)};
+\addlegendentry{$C_2=\{P_7,\dots,P_{12}\}$}
+% centroid 1 trajectory
+\addplot[thick,black,mark=o,mark size=2pt,dashed]
+  coordinates {(1,2)(1.5,1.5)(2,2)(2.4,2.2)(2.8333,2.3333)};
+\addlegendentry{$\bm\mu_1$ path}
+% centroid 2 trajectory
+\addplot[thick,black!55,mark=triangle,mark size=2.4pt,dashed]
+  coordinates {(2,3)(6.5,4)(7.5,4.375)(8,4.5714)(8.5,4.8333)};
+\addlegendentry{$\bm\mu_2$ path}
+% final centroids
+\addplot[only marks,mark=star,mark size=4.5pt,color=black]
+  coordinates {(2.8333,2.3333)(8.5,4.8333)};
+\end{axis}
+\end{tikzpicture}
+\caption{The larger run over five iterations. Dashed curves trace how the two
+centroids \emph{crawl} from their poor lower-left start to their final positions
+(stars); the final clusters are shown in blue and red.}
+\label{fig:kmeans2}
+\end{figure}
+
+%==============================================================================
 \chapter{Worked Example: The Elbow Method}
 \label{ch:elbow}
 %==============================================================================
