@@ -669,30 +669,119 @@ urlcolor=blue!60!black,linktocpage=true]{hyperref}
 	\]
 	where indices denote point subscripts (so ``$9$'' means $P_9$).
 	
-	\section{Iterations 2--4}
-	Repeating assignment and update (full arithmetic omitted for brevity; each value
-	is the mean of the assigned points):
-	
-	\noindent\textbf{Iteration 2}, centroids $(-3.375,-1),(2,2),(0,-3)$:
+	\section{Iteration 2 in Detail}
+	Centroids $\vmu_1=(-3.375,-1)$, $\vmu_2=(2,2)$, $\vmu_3=(0,-3)$ (squared distances rounded to two decimals). The bold entry is the nearest centroid.
+	\begin{center}
+	\small
+	\begin{tabular}{@{}ccccc c@{}}
+	\toprule
+	Point & $(x,y)$ & $d^2\!\to\vmu_1$ & $d^2\!\to\vmu_2$ & $d^2\!\to\vmu_3$ & Assign\\
+	\midrule
+	$P_{1}$ & $(3,-1)$ & $40.64$ & $\mathbf{10.00}$ & $13.00$ & $C_2$\\
+	$P_{2}$ & $(3,0)$ & $41.64$ & $\mathbf{5.00}$ & $18.00$ & $C_2$\\
+	$P_{3}$ & $(3,1)$ & $44.64$ & $\mathbf{2.00}$ & $25.00$ & $C_2$\\
+	$P_{4}$ & $(4,2)$ & $63.39$ & $\mathbf{4.00}$ & $41.00$ & $C_2$\\
+	$P_{5}$ & $(5,0)$ & $71.14$ & $\mathbf{13.00}$ & $34.00$ & $C_2$\\
+	$P_{6}$ & $(5,1)$ & $74.14$ & $\mathbf{10.00}$ & $41.00$ & $C_2$\\
+	$P_{7}$ & $(-1,3)$ & $21.64$ & $\mathbf{10.00}$ & $37.00$ & $C_2$\\
+	$P_{8}$ & $(-1,4)$ & $30.64$ & $\mathbf{13.00}$ & $50.00$ & $C_2$\\
+	$P_{9}$ & $(-2,2)$ & $\mathbf{10.89}$ & $16.00$ & $29.00$ & $C_1$\\
+	$P_{10}$ & $(-2,5)$ & $37.89$ & $\mathbf{25.00}$ & $68.00$ & $C_2$\\
+	$P_{11}$ & $(-3,2)$ & $\mathbf{9.14}$ & $25.00$ & $34.00$ & $C_1$\\
+	$P_{12}$ & $(-3,3)$ & $\mathbf{16.14}$ & $26.00$ & $45.00$ & $C_1$\\
+	$P_{13}$ & $(-2,-3)$ & $5.89$ & $41.00$ & $\mathbf{4.00}$ & $C_3$\\
+	$P_{14}$ & $(-3,-3)$ & $\mathbf{4.14}$ & $50.00$ & $9.00$ & $C_1$\\
+	$P_{15}$ & $(-3,-5)$ & $16.14$ & $74.00$ & $\mathbf{13.00}$ & $C_3$\\
+	$P_{16}$ & $(-4,-2)$ & $\mathbf{1.39}$ & $52.00$ & $17.00$ & $C_1$\\
+	$P_{17}$ & $(-5,-3)$ & $\mathbf{6.64}$ & $74.00$ & $25.00$ & $C_1$\\
+	$P_{18}$ & $(-5,-4)$ & $\mathbf{11.64}$ & $85.00$ & $26.00$ & $C_1$\\
+	\bottomrule
+	\end{tabular}
+	\end{center}
+	Updated centroids:
 	\[
-	C_1{=}\{9,11,12,14,16,17,18\}\!\Rightarrow\!\bigl(-\tfrac{25}{7},-\tfrac57\bigr){=}(-3.571,-0.714),\
-	C_2{=}\{1{-}8,10\}\!\Rightarrow\!\bigl(\tfrac{19}{9},\tfrac53\bigr){=}(2.111,1.667),\
-	C_3{=}\{13,15\}\!\Rightarrow\!(-2.5,-4).
-	\]
+C_1=\{9,11,12,14,16,17,18\}\Rightarrow\vmu_1=\bigl(-\tfrac{25}{7},-\tfrac{5}{7}\bigr)=(-3.571,-0.714),
+\]
+\[
+C_2=\{1\text{--}8,10\}\Rightarrow\vmu_2=\bigl(\tfrac{19}{9},\tfrac{5}{3}\bigr)=(2.111,1.667),\qquad
+C_3=\{13,15\}\Rightarrow\vmu_3=\bigl(-\tfrac{5}{2},-4\bigr)=(-2.5,-4).
+\]
 	
-	\noindent\textbf{Iteration 3}, centroids $(-3.571,-0.714),(2.111,1.667),(-2.5,-4)$:
+	\section{Iteration 3 in Detail}
+	Centroids $\vmu_1=(-3.571,-0.714)$, $\vmu_2=(2.111,1.667)$, $\vmu_3=(-2.5,-4)$. The bold entry is the nearest centroid.
+	\begin{center}
+	\small
+	\begin{tabular}{@{}ccccc c@{}}
+	\toprule
+	Point & $(x,y)$ & $d^2\!\to\vmu_1$ & $d^2\!\to\vmu_2$ & $d^2\!\to\vmu_3$ & Assign\\
+	\midrule
+	$P_{1}$ & $(3,-1)$ & $43.27$ & $\mathbf{7.90}$ & $39.25$ & $C_2$\\
+	$P_{2}$ & $(3,0)$ & $43.69$ & $\mathbf{3.57}$ & $46.25$ & $C_2$\\
+	$P_{3}$ & $(3,1)$ & $46.12$ & $\mathbf{1.23}$ & $55.25$ & $C_2$\\
+	$P_{4}$ & $(4,2)$ & $64.69$ & $\mathbf{3.68}$ & $78.25$ & $C_2$\\
+	$P_{5}$ & $(5,0)$ & $73.98$ & $\mathbf{11.12}$ & $72.25$ & $C_2$\\
+	$P_{6}$ & $(5,1)$ & $76.41$ & $\mathbf{8.79}$ & $81.25$ & $C_2$\\
+	$P_{7}$ & $(-1,3)$ & $20.41$ & $\mathbf{11.46}$ & $51.25$ & $C_2$\\
+	$P_{8}$ & $(-1,4)$ & $28.84$ & $\mathbf{15.12}$ & $66.25$ & $C_2$\\
+	$P_{9}$ & $(-2,2)$ & $\mathbf{9.84}$ & $17.01$ & $36.25$ & $C_1$\\
+	$P_{10}$ & $(-2,5)$ & $35.12$ & $\mathbf{28.01}$ & $81.25$ & $C_2$\\
+	$P_{11}$ & $(-3,2)$ & $\mathbf{7.69}$ & $26.23$ & $36.25$ & $C_1$\\
+	$P_{12}$ & $(-3,3)$ & $\mathbf{14.12}$ & $27.90$ & $49.25$ & $C_1$\\
+	$P_{13}$ & $(-2,-3)$ & $7.69$ & $38.68$ & $\mathbf{1.25}$ & $C_3$\\
+	$P_{14}$ & $(-3,-3)$ & $5.55$ & $47.90$ & $\mathbf{1.25}$ & $C_3$\\
+	$P_{15}$ & $(-3,-5)$ & $18.69$ & $70.57$ & $\mathbf{1.25}$ & $C_3$\\
+	$P_{16}$ & $(-4,-2)$ & $\mathbf{1.84}$ & $50.79$ & $6.25$ & $C_1$\\
+	$P_{17}$ & $(-5,-3)$ & $7.27$ & $72.35$ & $\mathbf{7.25}$ & $C_3$\\
+	$P_{18}$ & $(-5,-4)$ & $12.84$ & $82.68$ & $\mathbf{6.25}$ & $C_3$\\
+	\bottomrule
+	\end{tabular}
+	\end{center}
+	Updated centroids:
 	\[
-	C_1{=}\{9,11,12,16\}\!\Rightarrow\!(-3,1.25),\quad
-	C_2{=}\{1{-}8,10\}\!\Rightarrow\!(2.111,1.667),\quad
-	C_3{=}\{13,14,15,17,18\}\!\Rightarrow\!(-3.6,-3.6).
-	\]
+C_1=\{9,11,12,16\}\Rightarrow\vmu_1=\bigl(-3,\tfrac{5}{4}\bigr)=(-3,1.25),\qquad
+C_2=\{1\text{--}8,10\}\Rightarrow\vmu_2=\bigl(\tfrac{19}{9},\tfrac{5}{3}\bigr)=(2.111,1.667),
+\]
+\[
+C_3=\{13,14,15,17,18\}\Rightarrow\vmu_3=\bigl(-\tfrac{18}{5},-\tfrac{18}{5}\bigr)=(-3.6,-3.6).
+\]
 	
-	\noindent\textbf{Iteration 4}, centroids $(-3,1.25),(2.111,1.667),(-3.6,-3.6)$:
+	\section{Iteration 4 in Detail}
+	Centroids $\vmu_1=(-3,1.25)$, $\vmu_2=(2.111,1.667)$, $\vmu_3=(-3.6,-3.6)$. The bold entry is the nearest centroid.
+	\begin{center}
+	\small
+	\begin{tabular}{@{}ccccc c@{}}
+	\toprule
+	Point & $(x,y)$ & $d^2\!\to\vmu_1$ & $d^2\!\to\vmu_2$ & $d^2\!\to\vmu_3$ & Assign\\
+	\midrule
+	$P_{1}$ & $(3,-1)$ & $41.06$ & $\mathbf{7.90}$ & $50.32$ & $C_2$\\
+	$P_{2}$ & $(3,0)$ & $37.56$ & $\mathbf{3.57}$ & $56.52$ & $C_2$\\
+	$P_{3}$ & $(3,1)$ & $36.06$ & $\mathbf{1.23}$ & $64.72$ & $C_2$\\
+	$P_{4}$ & $(4,2)$ & $49.56$ & $\mathbf{3.68}$ & $89.12$ & $C_2$\\
+	$P_{5}$ & $(5,0)$ & $65.56$ & $\mathbf{11.12}$ & $86.92$ & $C_2$\\
+	$P_{6}$ & $(5,1)$ & $64.06$ & $\mathbf{8.79}$ & $95.12$ & $C_2$\\
+	$P_{7}$ & $(-1,3)$ & $\mathbf{7.06}$ & $11.46$ & $50.32$ & $C_1$\\
+	$P_{8}$ & $(-1,4)$ & $\mathbf{11.56}$ & $15.12$ & $64.52$ & $C_1$\\
+	$P_{9}$ & $(-2,2)$ & $\mathbf{1.56}$ & $17.01$ & $33.92$ & $C_1$\\
+	$P_{10}$ & $(-2,5)$ & $\mathbf{15.06}$ & $28.01$ & $76.52$ & $C_1$\\
+	$P_{11}$ & $(-3,2)$ & $\mathbf{0.56}$ & $26.23$ & $31.72$ & $C_1$\\
+	$P_{12}$ & $(-3,3)$ & $\mathbf{3.06}$ & $27.90$ & $43.92$ & $C_1$\\
+	$P_{13}$ & $(-2,-3)$ & $19.06$ & $38.68$ & $\mathbf{2.92}$ & $C_3$\\
+	$P_{14}$ & $(-3,-3)$ & $18.06$ & $47.90$ & $\mathbf{0.72}$ & $C_3$\\
+	$P_{15}$ & $(-3,-5)$ & $39.06$ & $70.57$ & $\mathbf{2.32}$ & $C_3$\\
+	$P_{16}$ & $(-4,-2)$ & $11.56$ & $50.79$ & $\mathbf{2.72}$ & $C_3$\\
+	$P_{17}$ & $(-5,-3)$ & $22.06$ & $72.35$ & $\mathbf{2.32}$ & $C_3$\\
+	$P_{18}$ & $(-5,-4)$ & $31.56$ & $82.68$ & $\mathbf{2.12}$ & $C_3$\\
+	\bottomrule
+	\end{tabular}
+	\end{center}
+	Updated centroids: All eighteen points now sit with their nearest natural group; the next pass confirms it.
 	\[
-	C_1{=}\{7{-}12\}\!\Rightarrow\!\bigl(-2,\tfrac{19}{6}\bigr){=}(-2.0,3.167),\
-	C_2{=}\{1{-}6\}\!\Rightarrow\!\bigl(\tfrac{23}{6},\tfrac12\bigr){=}(3.833,0.5),\
-	C_3{=}\{13{-}18\}\!\Rightarrow\!\bigl(-\tfrac{11}{3},-\tfrac{10}{3}\bigr){=}(-3.667,-3.333).
-	\]
+C_1=\{7\text{--}12\}\Rightarrow\vmu_1=\bigl(-2,\tfrac{19}{6}\bigr)=(-2.0,3.167),\qquad
+C_2=\{1\text{--}6\}\Rightarrow\vmu_2=\bigl(\tfrac{23}{6},\tfrac{1}{2}\bigr)=(3.833,0.5),
+\]
+\[
+C_3=\{13\text{--}18\}\Rightarrow\vmu_3=\bigl(-\tfrac{11}{3},-\tfrac{10}{3}\bigr)=(-3.667,-3.333).
+\]
 	
 	\section{Iteration 5 --- Convergence}
 	Reassigning every point to its nearest of the iteration-4 centroids leaves all
