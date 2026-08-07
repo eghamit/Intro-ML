@@ -596,6 +596,174 @@ urlcolor=blue!60!black,linktocpage=true]{hyperref}
 	\end{figure}
 	
 	%==============================================================================
+	\chapter{Worked Example: Three Clusters ($k=3$) by Hand}
+	\label{ch:worked3}
+	%==============================================================================
+	
+	This example clusters \textbf{eighteen} points into $k=3$ groups, starting from
+	three \emph{distinct} centroids. It also highlights a common pitfall.
+	
+	\begin{remark}[Initial centroids must be distinct]
+	If the three seeds coincide (e.g.\ $\vmu_1=\vmu_2=\vmu_3=(0,0)$), then every
+	point is \emph{equidistant} to all three centroids---a three-way tie for all
+	$18$ points. Standard $k$-means then places every point in one cluster and
+	leaves the other two empty, and it stalls. The seeds must therefore be
+	\textbf{distinct}, as below.
+	\end{remark}
+	
+	\section{The Data and Setup}
+	\begin{center}
+	\begin{tabular}{@{}c|cccccc@{}}
+	\toprule
+	Point & $P_1$ & $P_2$ & $P_3$ & $P_4$ & $P_5$ & $P_6$\\
+	$(x,y)$ & $(3,-1)$ & $(3,0)$ & $(3,1)$ & $(4,2)$ & $(5,0)$ & $(5,1)$\\
+	\midrule
+	Point & $P_7$ & $P_8$ & $P_9$ & $P_{10}$ & $P_{11}$ & $P_{12}$\\
+	$(x,y)$ & $(-1,3)$ & $(-1,4)$ & $(-2,2)$ & $(-2,5)$ & $(-3,2)$ & $(-3,3)$\\
+	\midrule
+	Point & $P_{13}$ & $P_{14}$ & $P_{15}$ & $P_{16}$ & $P_{17}$ & $P_{18}$\\
+	$(x,y)$ & $(-2,-3)$ & $(-3,-3)$ & $(-3,-5)$ & $(-4,-2)$ & $(-5,-3)$ & $(-5,-4)$\\
+	\bottomrule
+	\end{tabular}
+	\end{center}
+	Initial centroids: $\vmu_1=(0,0)$, $\vmu_2=(1,1)$, $\vmu_3=(1,-1)$. We assign by
+	squared distance $d^2$; on a tie the lowest cluster index wins.
+	
+	\section{Iteration 1 in Detail}
+	The bold entry in each row is the nearest (smallest) squared distance.
+	\begin{center}
+	\small
+	\begin{tabular}{@{}ccccc c@{}}
+	\toprule
+	Point & $(x,y)$ & $d^2\!\to\vmu_1(0,0)$ & $d^2\!\to\vmu_2(1,1)$ & $d^2\!\to\vmu_3(1,{-}1)$ & Assign\\
+	\midrule
+	$P_1$ & $(3,-1)$ & $10$ & $8$ & $\mathbf{4}$ & $C_3$\\
+	$P_2$ & $(3,0)$ & $9$ & $\mathbf{5}$ & $5$ & $C_2$\\
+	$P_3$ & $(3,1)$ & $10$ & $\mathbf{4}$ & $8$ & $C_2$\\
+	$P_4$ & $(4,2)$ & $20$ & $\mathbf{10}$ & $18$ & $C_2$\\
+	$P_5$ & $(5,0)$ & $25$ & $\mathbf{17}$ & $17$ & $C_2$\\
+	$P_6$ & $(5,1)$ & $26$ & $\mathbf{16}$ & $20$ & $C_2$\\
+	$P_7$ & $(-1,3)$ & $10$ & $\mathbf{8}$ & $20$ & $C_2$\\
+	$P_8$ & $(-1,4)$ & $17$ & $\mathbf{13}$ & $29$ & $C_2$\\
+	$P_9$ & $(-2,2)$ & $\mathbf{8}$ & $10$ & $18$ & $C_1$\\
+	$P_{10}$ & $(-2,5)$ & $29$ & $\mathbf{25}$ & $45$ & $C_2$\\
+	$P_{11}$ & $(-3,2)$ & $\mathbf{13}$ & $17$ & $25$ & $C_1$\\
+	$P_{12}$ & $(-3,3)$ & $\mathbf{18}$ & $20$ & $32$ & $C_1$\\
+	$P_{13}$ & $(-2,-3)$ & $\mathbf{13}$ & $25$ & $13$ & $C_1$\\
+	$P_{14}$ & $(-3,-3)$ & $\mathbf{18}$ & $32$ & $20$ & $C_1$\\
+	$P_{15}$ & $(-3,-5)$ & $34$ & $52$ & $\mathbf{32}$ & $C_3$\\
+	$P_{16}$ & $(-4,-2)$ & $\mathbf{20}$ & $34$ & $26$ & $C_1$\\
+	$P_{17}$ & $(-5,-3)$ & $\mathbf{34}$ & $52$ & $40$ & $C_1$\\
+	$P_{18}$ & $(-5,-4)$ & $\mathbf{41}$ & $61$ & $45$ & $C_1$\\
+	\bottomrule
+	\end{tabular}
+	\end{center}
+	(Ties $P_2,P_5$ between $C_2,C_3$ and $P_{13}$ between $C_1,C_3$ go to the lower
+	index.) The clusters and updated centroids are
+	\[
+	\begin{aligned}
+	C_1&=\{9,11,12,13,14,16,17,18\}\Rightarrow \vmu_1=\bigl(-\tfrac{27}{8},-1\bigr)=(-3.375,-1.0),\\
+	C_2&=\{2,3,4,5,6,7,8,10\}\Rightarrow \vmu_2=(2,2),\\
+	C_3&=\{1,15\}\Rightarrow \vmu_3=(0,-3),
+	\end{aligned}
+	\]
+	where indices denote point subscripts (so ``$9$'' means $P_9$).
+	
+	\section{Iterations 2--4}
+	Repeating assignment and update (full arithmetic omitted for brevity; each value
+	is the mean of the assigned points):
+	
+	\noindent\textbf{Iteration 2}, centroids $(-3.375,-1),(2,2),(0,-3)$:
+	\[
+	C_1{=}\{9,11,12,14,16,17,18\}\!\Rightarrow\!\bigl(-\tfrac{25}{7},-\tfrac57\bigr){=}(-3.571,-0.714),\
+	C_2{=}\{1{-}8,10\}\!\Rightarrow\!\bigl(\tfrac{19}{9},\tfrac53\bigr){=}(2.111,1.667),\
+	C_3{=}\{13,15\}\!\Rightarrow\!(-2.5,-4).
+	\]
+	
+	\noindent\textbf{Iteration 3}, centroids $(-3.571,-0.714),(2.111,1.667),(-2.5,-4)$:
+	\[
+	C_1{=}\{9,11,12,16\}\!\Rightarrow\!(-3,1.25),\quad
+	C_2{=}\{1{-}8,10\}\!\Rightarrow\!(2.111,1.667),\quad
+	C_3{=}\{13,14,15,17,18\}\!\Rightarrow\!(-3.6,-3.6).
+	\]
+	
+	\noindent\textbf{Iteration 4}, centroids $(-3,1.25),(2.111,1.667),(-3.6,-3.6)$:
+	\[
+	C_1{=}\{7{-}12\}\!\Rightarrow\!\bigl(-2,\tfrac{19}{6}\bigr){=}(-2.0,3.167),\
+	C_2{=}\{1{-}6\}\!\Rightarrow\!\bigl(\tfrac{23}{6},\tfrac12\bigr){=}(3.833,0.5),\
+	C_3{=}\{13{-}18\}\!\Rightarrow\!\bigl(-\tfrac{11}{3},-\tfrac{10}{3}\bigr){=}(-3.667,-3.333).
+	\]
+	
+	\section{Iteration 5 --- Convergence}
+	Reassigning every point to its nearest of the iteration-4 centroids leaves all
+	memberships unchanged, so the centroids do not move: the algorithm has
+	\textbf{converged} after five iterations.
+	
+	\section{Evolution of the Clusters}
+	The table tracks each cluster's membership (point indices) per iteration; watch
+	the groups sort themselves out from the poor near-origin start.
+	\begin{center}
+	\small
+	\begin{tabular}{@{}clll@{}}
+	\toprule
+	It & $C_1$ & $C_2$ & $C_3$\\
+	\midrule
+	1 & $9,11,12,13,14,16,17,18$ & $2,3,4,5,6,7,8,10$ & $1,15$\\
+	2 & $9,11,12,14,16,17,18$ & $1,2,3,4,5,6,7,8,10$ & $13,15$\\
+	3 & $9,11,12,16$ & $1,2,3,4,5,6,7,8,10$ & $13,14,15,17,18$\\
+	4 & $7,8,9,10,11,12$ & $1,2,3,4,5,6$ & $13,14,15,16,17,18$\\
+	5 & \multicolumn{3}{l}{unchanged --- \textbf{converged}}\\
+	\bottomrule
+	\end{tabular}
+	\end{center}
+	
+	\section{Final Result and Figure}
+	\begin{center}
+	\begin{tabular}{@{}lll@{}}
+	\toprule
+	Cluster & Members & Centroid\\
+	\midrule
+	$C_1$ (upper-left) & $P_7,P_8,P_9,P_{10},P_{11},P_{12}$ & $(-2,\tfrac{19}{6})\approx(-2.00,3.17)$\\
+	$C_2$ (right)      & $P_1,P_2,P_3,P_4,P_5,P_6$          & $(\tfrac{23}{6},\tfrac12)\approx(3.83,0.50)$\\
+	$C_3$ (lower-left) & $P_{13},P_{14},P_{15},P_{16},P_{17},P_{18}$ & $(-\tfrac{11}{3},-\tfrac{10}{3})\approx(-3.67,-3.33)$\\
+	\bottomrule
+	\end{tabular}
+	\end{center}
+	
+	\begin{figure}[ht]
+	\centering
+	\begin{tikzpicture}
+	\begin{axis}[
+	  width=11.5cm,height=11cm,
+	  axis lines=middle,
+	  xlabel={$x$},ylabel={$y$},
+	  xmin=-6.5,xmax=6.5,ymin=-6.5,ymax=6.5,
+	  grid=both,legend pos=outer north east,legend cell align=left]
+	\addplot[only marks,mark=square*,mark size=2.6pt,color=blue]
+	  coordinates {(-1,3)(-1,4)(-2,2)(-2,5)(-3,2)(-3,3)};
+	\addlegendentry{$C_1$ (upper-left)}
+	\addplot[only marks,mark=*,mark size=2.6pt,color=red!80!black]
+	  coordinates {(3,-1)(3,0)(3,1)(4,2)(5,0)(5,1)};
+	\addlegendentry{$C_2$ (right)}
+	\addplot[only marks,mark=triangle*,mark size=3pt,color=green!55!black]
+	  coordinates {(-2,-3)(-3,-3)(-3,-5)(-4,-2)(-5,-3)(-5,-4)};
+	\addlegendentry{$C_3$ (lower-left)}
+	\addplot[only marks,mark=star,mark size=4pt,color=black]
+	  coordinates {(-2,3.1667)(3.8333,0.5)(-3.6667,-3.3333)};
+	\addlegendentry{final centroids}
+	\addplot[only marks,mark=x,mark size=4pt,color=gray]
+	  coordinates {(0,0)(1,1)(1,-1)};
+	\addlegendentry{initial seeds}
+	\end{axis}
+	\end{tikzpicture}
+	\caption{The $k=3$ result. The three initial seeds (gray $\times$) start bunched
+	near the origin; after five iterations $k$-means recovers the three
+	well-separated groups, with centroids marked by stars.}
+	\label{fig:kmeans3}
+	\end{figure}
+	
+	
+	%==============================================================================
 	\chapter{Worked Example: The Elbow Method}
 	\label{ch:elbow}
 	%==============================================================================
