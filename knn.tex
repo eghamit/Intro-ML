@@ -511,6 +511,122 @@ urlcolor=blue!55!black,linktocpage=true]{hyperref}
 	The weighted estimate leans toward the closest house $H_1$ (price $92$), as it
 	should.
 	
+	\section{Including a Third Feature: Area (sq ft)}
+	Suppose we now add $x_3=$ area (sq ft) to each house. The dataset and query
+	become:
+	\begin{center}
+	\renewcommand{\arraystretch}{1.2}
+	\begin{tabular}{c c c c c}
+	\toprule
+	House & Rooms & Age & Area (sq ft) & Price\\
+	\midrule
+	H1 & 5 & 11 & 1450 & 92\\
+	H2 & 6 & 11 & 1600 & 88\\
+	H3 & 5 & 8  & 1200 & 98\\
+	H4 & 7 & 12 & 1520 & 80\\
+	H5 & 2 & 9  & 900  & 70\\
+	H6 & 8 & 14 & 2000 & 74\\
+	\bottomrule
+	\end{tabular}
+	\end{center}
+	Query $Q=(5,\,10,\,1500)$. The Euclidean distance now runs over three features:
+	\[
+	d(Q,H)=\sqrt{(\Delta\text{rooms})^2+(\Delta\text{age})^2+(\Delta\text{area})^2}.
+	\]
+	
+	\subsection*{Unscaled distances}
+	\begin{center}
+	\renewcommand{\arraystretch}{1.2}
+	\begin{tabular}{c c c c}
+	\toprule
+	House & $(\Delta r)^2+(\Delta a)^2+(\Delta\text{area})^2$ & $d^2$ & $d$\\
+	\midrule
+	H1 & $0+1+2500$    & $2501$   & $\mathbf{50.01}$\\
+	H2 & $1+1+10000$   & $10002$  & $\mathbf{100.01}$\\
+	H3 & $0+4+90000$   & $90004$  & $300.01$\\
+	H4 & $4+4+400$     & $408$    & $\mathbf{20.20}$\\
+	H5 & $9+1+360000$  & $360010$ & $600.01$\\
+	H6 & $9+16+250000$ & $250025$ & $500.02$\\
+	\bottomrule
+	\end{tabular}
+	\end{center}
+	The three nearest are now $\{H_4,H_1,H_2\}$ (prices $80,92,88$)---\emph{not}
+	$\{H_1,H_2,H_3\}$ as before. The simple prediction is
+	\[
+	\hat y=\frac{80+92+88}{3}=\frac{260}{3}\approx\boxed{86.67\ \text{lakh},}
+	\]
+	and the distance-weighted prediction ($w=1/d^2$) is
+	\begin{center}
+	\begin{tabular}{@{}ccccc@{}}
+	\toprule
+	House & $d^2$ & $w=1/d^2$ & Price & $w\cdot y$\\
+	\midrule
+	H4 & $408$   & $0.002451$ & $80$ & $0.1961$\\
+	H1 & $2501$  & $0.000400$ & $92$ & $0.0368$\\
+	H2 & $10002$ & $0.000100$ & $88$ & $0.0088$\\
+	\midrule
+	\multicolumn{2}{r}{$\sum$} & $0.002951$ & & $0.2417$\\
+	\bottomrule
+	\end{tabular}
+	\end{center}
+	\[
+	\hat y_{\text{weighted}}=\frac{0.2417}{0.002951}\approx\boxed{81.90\ \text{lakh}.}
+	\]
+	
+	\begin{conceptbox}
+	\textbf{Why did the answer change?} Area ranges in the \emph{thousands} while
+	rooms and age are single/double digits, so the term $(\Delta\text{area})^2$
+	dominates $d^2$ completely---distances are essentially the area gap alone. The
+	prediction dropped from $92.67$ to $86.67$ \emph{not} because area is truly more
+	informative, but purely because of its larger units. This is exactly the
+	feature-scaling problem of Chapter~\ref{ch:scaling}.
+	\end{conceptbox}
+	
+	\subsection*{Standardized distances (the fair comparison)}
+	Standardize each feature over the six houses, $z=(x-\mu)/\sigma$, with
+	\[
+	\mu=(5.5,\,10.833,\,1445),\qquad \sigma=(1.893,\,1.951,\,340.28).
+	\]
+	The query becomes $Q_z=(-0.264,-0.427,\,0.162)$, and the scaled distances are:
+	\begin{center}
+	\renewcommand{\arraystretch}{1.2}
+	\begin{tabular}{c c c}
+	\toprule
+	House & Price & Scaled $d$\\
+	\midrule
+	H1 & 92 & $\mathbf{0.533}$\\
+	H2 & 88 & $\mathbf{0.793}$\\
+	H3 & 98 & $\mathbf{1.352}$\\
+	H4 & 80 & $1.473$\\
+	H5 & 70 & $2.426$\\
+	H6 & 74 & $2.979$\\
+	\bottomrule
+	\end{tabular}
+	\end{center}
+	With every feature on an equal footing the three nearest are again
+	$\{H_1,H_2,H_3\}$, giving
+	\[
+	\hat y=\frac{92+88+98}{3}\approx 92.67\ \text{lakh}\quad(\text{weighted}\approx 91.45\ \text{lakh}),
+	\]
+	the same as the two-feature answer---area now contributes without dominating.
+	
+	\subsection*{Summary}
+	\begin{center}
+	\renewcommand{\arraystretch}{1.2}
+	\begin{tabular}{l c c c}
+	\toprule
+	Scenario & Neighbours & Simple avg & Weighted avg\\
+	\midrule
+	2 features (rooms, age)      & $H_1,H_2,H_3$ & $92.67$ & $91.71$\\
+	3 features, \textbf{unscaled}  & $H_4,H_1,H_2$ & $86.67$ & $81.90$\\
+	3 features, \textbf{standardized} & $H_1,H_2,H_3$ & $92.67$ & $91.45$\\
+	\bottomrule
+	\end{tabular}
+	\end{center}
+	Adding a feature can change the prediction dramatically---but if the new feature
+	has a larger scale, that change is an \emph{artefact of units}. Always scale
+	before adding features of different ranges.
+	
 	%==============================================================================
 	\chapter{Worked Example 3: Feature Scaling by Hand}
 	\label{ch:scaling}
