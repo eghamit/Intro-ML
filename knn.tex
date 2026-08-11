@@ -895,34 +895,51 @@ urlcolor=blue!55!black,linktocpage=true]{hyperref}
 	\section{Visual Interpretation}
 	\begin{figure}[ht]
 	\centering
-	\begin{tikzpicture}[scale=0.72,every node/.style={font=\small}]
-	% axes
-	\draw[->,thick] (0,0)--(10.6,0) node[right]{$x_1$};
-	\draw[->,thick] (0,0)--(0,9.6) node[above]{$x_2$};
-	% cluster clouds (dashed, filled)
-	\draw[cnavy,dashed,thick,fill=cnavy!10]  (1.9,6.6) ellipse [x radius=1.7, y radius=1.9];
-	\draw[cteal,dashed,thick,fill=cteal!12]  (8.2,6.6) ellipse [x radius=1.6, y radius=1.9];
-	\draw[ccoral,dashed,thick,fill=ccoral!10](4.7,1.8) ellipse [x radius=2.2, y radius=1.5];
-	% class labels
-	\node[cnavy]        at (1.9,9.0) {\textbf{Class A}};
-	\node[cteal!70!black] at (8.2,9.0) {\textbf{Class B}};
-	\node[ccoral]       at (8.4,1.8) {\textbf{Class C}};
-	% Class A points (blue circles)
-	\foreach \p in {(1,6),(2,7),(2,5),(3,7),(1,8)}
-	  \node[circle,fill=cnavy,minimum size=4.5pt,inner sep=0pt] at \p {};
-	% Class B points (teal squares)
-	\foreach \p in {(8,7),(9,6),(9,8),(8,5),(7,7)}
-	  \node[fill=cteal,minimum size=4pt,inner sep=0pt] at \p {};
-	% Class C points (coral diamonds)
-	\foreach \p in {(4,1),(5,2),(6,1),(3,2),(6,3)}
-	  \node[fill=ccoral,minimum size=4pt,inner sep=0pt,rotate=45] at \p {};
-	% arrows from P to the nearest point of each class
-	\draw[-{Latex[length=2.5mm]},thick] (6,5)--(3.15,6.9);
-	\draw[-{Latex[length=2.5mm]},thick] (6,5)--(7.85,5.05);
-	\draw[-{Latex[length=2.5mm]},thick] (6,5)--(6,3.2);
-	% query P
-	\node[circle,fill=corange,draw=black,minimum size=7pt,inner sep=0pt] at (6,5) {};
-	\node[font=\bfseries] at (5.55,5.4) {P};
+	\begin{tikzpicture}
+	\begin{axis}[
+	  width=0.82\textwidth, unit vector ratio=1 1,
+	  axis lines=middle, xlabel={$x_1$}, ylabel={$x_2$},
+	  xlabel style={anchor=north west}, ylabel style={anchor=south east},
+	  xmin=0, xmax=10.5, ymin=0, ymax=9.6,
+	  xtick={1,2,3,4,5,6,7,8,9,10}, ytick={1,2,3,4,5,6,7,8,9},
+	  tick label style={font=\scriptsize}, grid=both,
+	  major grid style={line width=0.2pt,draw=gray!30},
+	  legend pos=north west, legend cell align=left, clip=false]
+	% dashed class clouds
+	\draw[cnavy,dashed,thick,fill=cnavy!8]   (axis cs:1.8,6.6) ellipse [x radius=1.6,y radius=1.9];
+	\draw[cteal,dashed,thick,fill=cteal!10]  (axis cs:8.2,6.6) ellipse [x radius=1.5,y radius=1.9];
+	\draw[ccoral,dashed,thick,fill=ccoral!8] (axis cs:4.5,1.8) ellipse [x radius=2.1,y radius=1.4];
+	% data points (+ legend)
+	\addplot[only marks,mark=*,mark size=2.5pt,color=cnavy] coordinates {(1,6)(2,7)(2,5)(3,7)(1,8)};
+	\addlegendentry{Class A}
+	\addplot[only marks,mark=square*,mark size=2.5pt,color=cteal] coordinates {(8,7)(9,6)(9,8)(8,5)(7,7)};
+	\addlegendentry{Class B}
+	\addplot[only marks,mark=diamond*,mark size=3pt,color=ccoral] coordinates {(4,1)(5,2)(6,1)(3,2)(6,3)};
+	\addlegendentry{Class C}
+	\addplot[only marks,mark=star,mark size=4pt,color=corange] coordinates {(6,5)};
+	\addlegendentry{Query $P$}
+	% arrows from P to the nearest member of each class
+	\draw[-{Latex[length=2mm]},thick] (axis cs:6,5)--(axis cs:3,7);
+	\draw[-{Latex[length=2mm]},thick] (axis cs:6,5)--(axis cs:8,5);
+	\draw[-{Latex[length=2mm]},thick] (axis cs:6,5)--(axis cs:6,3);
+	% coordinate labels
+	\node[font=\scriptsize,anchor=south] at (axis cs:1,6) {$(1,6)$};
+	\node[font=\scriptsize,anchor=south] at (axis cs:2,7) {$(2,7)$};
+	\node[font=\scriptsize,anchor=south] at (axis cs:2,5) {$(2,5)$};
+	\node[font=\scriptsize,anchor=south] at (axis cs:3,7) {$(3,7)$};
+	\node[font=\scriptsize,anchor=south] at (axis cs:1,8) {$(1,8)$};
+	\node[font=\scriptsize,anchor=south] at (axis cs:8,7) {$(8,7)$};
+	\node[font=\scriptsize,anchor=south] at (axis cs:9,6) {$(9,6)$};
+	\node[font=\scriptsize,anchor=south] at (axis cs:9,8) {$(9,8)$};
+	\node[font=\scriptsize,anchor=south] at (axis cs:8,5) {$(8,5)$};
+	\node[font=\scriptsize,anchor=south] at (axis cs:7,7) {$(7,7)$};
+	\node[font=\scriptsize,anchor=south] at (axis cs:4,1) {$(4,1)$};
+	\node[font=\scriptsize,anchor=south] at (axis cs:5,2) {$(5,2)$};
+	\node[font=\scriptsize,anchor=south] at (axis cs:6,1) {$(6,1)$};
+	\node[font=\scriptsize,anchor=south] at (axis cs:3,2) {$(3,2)$};
+	\node[font=\scriptsize,anchor=west] at (axis cs:6,3) {$(6,3)$};
+	\node[font=\scriptsize\bfseries,anchor=north west] at (axis cs:6,5) {$P(6,5)$};
+	\end{axis}
 	\end{tikzpicture}
 	\caption{Three-class KNN. The dashed clouds show classes A, B and C; arrows
 	point from the query $P$ to the nearest member of each class. Although Class C
