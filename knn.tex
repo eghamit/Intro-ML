@@ -717,6 +717,102 @@ urlcolor=blue!55!black,linktocpage=true]{hyperref}
 	\end{resultbox}
 	
 	%==============================================================================
+	\chapter{Worked Example 4: Min--Max Normalization by Hand}
+	\label{ch:minmax}
+	%==============================================================================
+	
+	Chapter~\ref{ch:scaling} used \emph{standardization} (the $z$-score) to put the
+	two features on a common scale. \emph{Min--max normalization} is the other
+	standard rescaling: instead of centring on the mean, it stretches each feature
+	so that its smallest value becomes $0$ and its largest becomes $1$.
+	
+	\section{The Min--Max Formula}
+	For a feature $x$ with minimum $x_{\min}$ and maximum $x_{\max}$,
+	\begin{equation}
+	x'=\frac{x-x_{\min}}{x_{\max}-x_{\min}}\ \in[0,1],
+	\label{eq:minmax}
+	\end{equation}
+	so $x'=0$ at the feature's minimum, $x'=1$ at its maximum, and everything else
+	lands proportionally in between.
+	
+	\section{Feature Ranges}
+	Using the same ten students of Chapter~\ref{ch:scaling}:
+	\[
+	h_{\min}=1,\ h_{\max}=6\ \Rightarrow\ h'=\frac{h-1}{5};\qquad
+	a_{\min}=50,\ a_{\max}=80\ \Rightarrow\ a'=\frac{a-50}{30}.
+	\]
+	The query $X=(4,68)$ therefore normalizes to
+	\[
+	h'=\frac{4-1}{5}=0.6,\qquad a'=\frac{68-50}{30}=\frac{18}{30}=0.6,
+	\qquad\text{so } X'=(0.6,\,0.6).
+	\]
+	
+	\section{Normalized Distances}
+	For example, $S_6=(4,65)\to(0.600,0.500)$ and $S_7=(4,70)\to(0.600,0.667)$,
+	giving
+	\[
+	d(X,S_6)=\sqrt{0^2+0.100^2}=0.100,\qquad
+	d(X,S_7)=\sqrt{0^2+0.067^2}=0.067 .
+	\]
+	\begin{center}
+	\small
+	\setlength{\tabcolsep}{5pt}
+	\renewcommand{\arraystretch}{1.25}
+	\begin{tabular}{c| cc | cc | c | cc}
+	\toprule
+	\multirow{2}{*}{\shortstack{Student\\ $S_j$}}
+	& \multicolumn{2}{c|}{Hours, $h_j$}
+	& \multicolumn{2}{c|}{Attendance (\%)}
+	& \multirow{2}{*}{Class}
+	& \multicolumn{2}{c}{$d(X,S_j)$}\\
+	\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){7-8}
+	& Raw & \shortstack{Normalized\\[2pt]$\dfrac{h_j-h_{\min}}{h_{\max}-h_{\min}}$}
+	& Raw & \shortstack{Normalized\\[2pt]$\dfrac{a_j-a_{\min}}{a_{\max}-a_{\min}}$}
+	& & Raw & Norm.\\
+	\midrule
+	$S_1$  & 1 & $0.000$ & 50 & $0.000$ & \classfail & 18.25 & 0.85\\
+	$S_2$  & 2 & $0.200$ & 55 & $0.167$ & \classfail & 13.15 & 0.59\\
+	$S_3$  & 2 & $0.200$ & 60 & $0.333$ & \classfail & 8.25  & 0.48\\
+	$S_4$  & 3 & $0.400$ & 60 & $0.333$ & \classfail & 8.06  & 0.33\\
+	$S_5$  & 3 & $0.400$ & 65 & $0.500$ & \classpass & 3.16  & 0.22\\
+	$S_6$  & 4 & $0.600$ & 65 & $0.500$ & \classpass & 3.00  & 0.10\\
+	$S_7$  & 4 & $0.600$ & 70 & $0.667$ & \classpass & 2.00  & 0.07\\
+	$S_8$  & 5 & $0.800$ & 70 & $0.667$ & \classpass & 2.24  & 0.21\\
+	$S_9$  & 5 & $0.800$ & 75 & $0.833$ & \classpass & 7.07  & 0.31\\
+	$S_{10}$ & 6 & $1.000$ & 80 & $1.000$ & \classpass & 12.17 & 0.57\\
+	\bottomrule
+	\end{tabular}
+	\end{center}
+	
+	\begin{resultbox}
+	The three smallest normalized distances are $0.07\ (S_7),\ 0.10\ (S_6),\
+	0.21\ (S_8)$, so the $k=3$ neighbours are $\{S_7,S_6,S_8\}$---all
+	\classpass{}---and $\hat y=\text{Pass}$. As with standardization, $S_6$ now
+	ranks ahead of $S_8$ (they were $S_8$ before $S_6$ under the raw distances),
+	because rescaling gives ``hours'' a fair say.
+	\end{resultbox}
+	
+	\section{Standardization vs.\ Min--Max Normalization}
+	Both rescalings fix the ``attendance dominates'' problem; they differ in how.
+	\begin{center}
+	\begin{tabular}{@{}p{6.4cm}p{6.4cm}@{}}
+	\toprule
+	\textbf{Standardization ($z$-score)} & \textbf{Min--max normalization}\\
+	\midrule
+	$x'=\dfrac{x-\mu}{\sigma}$; mean $0$, variance $1$. &
+	$x'=\dfrac{x-x_{\min}}{x_{\max}-x_{\min}}$; range $[0,1]$.\\
+	Unbounded; centred on the mean. & Bounded to $[0,1]$; anchored to the extremes.\\
+	More robust to outliers (uses $\mu,\sigma$). & Sensitive to outliers (a single
+	extreme value sets $x_{\min}$ or $x_{\max}$).\\
+	Good default for distance-based methods. & Handy when a bounded range is needed
+	(e.g.\ image pixels, neural-net inputs).\\
+	\bottomrule
+	\end{tabular}
+	\end{center}
+	On this dataset both give the identical neighbour set $\{S_7,S_6,S_8\}$ and the
+	prediction \textbf{Pass}; on data with outliers they can disagree.
+	
+	%==============================================================================
 	\chapter{Advantages, Disadvantages and Code}
 	%==============================================================================
 	
