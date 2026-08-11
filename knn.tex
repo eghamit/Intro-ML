@@ -840,30 +840,36 @@ urlcolor=blue!55!black,linktocpage=true]{hyperref}
 	Query point $P=(6,5)$; use $k=7$ and Euclidean distance.
 	
 	\section{Distances from $P$}
-	Squared distance is enough to rank neighbours ($d^2=(6-x)^2+(5-y)^2$). Sorting
-	all fifteen points (nearest first); the \textbf{seven nearest} are in bold:
+	Squared distance is enough to rank the neighbours ($d^2=(6-x)^2+(5-y)^2$). The
+	fifteen points are listed \textbf{by class} (A, then B, then C); the
+	\textbf{seven nearest} (Rank $\le 7$) are shown in bold.
 	\begin{center}
 	\small
 	\renewcommand{\arraystretch}{1.15}
 	\begin{tabular}{c c c c c}
 	\toprule
-	Rank & Point & Class & $d^2$ & $d$\\
+	Class & Point & $d^2$ & $d$ & Rank\\
 	\midrule
-	\textbf{1}  & $(6,3)$ & \textbf{C} & $4$  & $\mathbf{2.00}$\\
-	\textbf{2}  & $(8,5)$ & \textbf{B} & $4$  & $\mathbf{2.00}$\\
-	\textbf{3}  & $(7,7)$ & \textbf{B} & $5$  & $\mathbf{2.24}$\\
-	\textbf{4}  & $(8,7)$ & \textbf{B} & $8$  & $\mathbf{2.83}$\\
-	\textbf{5}  & $(5,2)$ & \textbf{C} & $10$ & $\mathbf{3.16}$\\
-	\textbf{6}  & $(9,6)$ & \textbf{B} & $10$ & $\mathbf{3.16}$\\
-	\textbf{7}  & $(3,7)$ & \textbf{A} & $13$ & $\mathbf{3.61}$\\
-	8  & $(2,5)$ & A & $16$ & $4.00$\\
-	9  & $(6,1)$ & C & $16$ & $4.00$\\
-	10 & $(3,2)$ & C & $18$ & $4.24$\\
-	11 & $(9,8)$ & B & $18$ & $4.24$\\
-	12 & $(2,7)$ & A & $20$ & $4.47$\\
-	13 & $(4,1)$ & C & $20$ & $4.47$\\
-	14 & $(1,6)$ & A & $26$ & $5.10$\\
-	15 & $(1,8)$ & A & $34$ & $5.83$\\
+	\multirow{5}{*}{\textbf{A}}
+	 & $(1,6)$ & $26$ & $5.10$          & $14$\\
+	 & $(2,7)$ & $20$ & $4.47$          & $12$\\
+	 & $(2,5)$ & $16$ & $4.00$          & $8$\\
+	 & $(3,7)$ & $13$ & $\mathbf{3.61}$ & $\mathbf{7}$\\
+	 & $(1,8)$ & $34$ & $5.83$          & $15$\\
+	\midrule
+	\multirow{5}{*}{\textbf{B}}
+	 & $(8,7)$ & $8$  & $\mathbf{2.83}$ & $\mathbf{4}$\\
+	 & $(9,6)$ & $10$ & $\mathbf{3.16}$ & $\mathbf{6}$\\
+	 & $(9,8)$ & $18$ & $4.24$          & $11$\\
+	 & $(8,5)$ & $4$  & $\mathbf{2.00}$ & $\mathbf{2}$\\
+	 & $(7,7)$ & $5$  & $\mathbf{2.24}$ & $\mathbf{3}$\\
+	\midrule
+	\multirow{5}{*}{\textbf{C}}
+	 & $(4,1)$ & $20$ & $4.47$          & $13$\\
+	 & $(5,2)$ & $10$ & $\mathbf{3.16}$ & $\mathbf{5}$\\
+	 & $(6,1)$ & $16$ & $4.00$          & $9$\\
+	 & $(3,2)$ & $18$ & $4.24$          & $10$\\
+	 & $(6,3)$ & $4$  & $\mathbf{2.00}$ & $\mathbf{1}$\\
 	\bottomrule
 	\end{tabular}
 	\end{center}
