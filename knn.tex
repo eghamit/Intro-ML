@@ -459,7 +459,329 @@ urlcolor=blue!55!black,linktocpage=true]{hyperref}
 	irrelevant points dilute the vote.
 	
 	%==============================================================================
-	\chapter{Worked Example 2: KNN Regression by Hand}
+	\chapter{Worked Example 2: Feature Scaling by Hand}
+	\label{ch:scaling}
+	%==============================================================================
+	
+	We revisit the classification data of Chapter~\ref{ch:classify} to see
+	\emph{why} scaling (Section~\ref{sec:scaling}) matters. In the raw distances,
+	attendance (range $50$--$80$) completely dominates hours (range $1$--$6$): every
+	distance was essentially the attendance gap. We now standardize both features.
+	
+	\section{Training Dataset}
+	\begin{center}
+		\renewcommand{\arraystretch}{1.2}
+		\begin{tabular}{c c c c}
+			\toprule
+			\textbf{Student} & \textbf{Hours} & \textbf{Attendance (\%)} & \textbf{Class}\\
+			$S_{j}$ & $h_{j}$ & $a_{j}$ & \\
+			\midrule
+			$S_{1}$  & 1 & 50 & \classfail\\
+			$S_{2}$  & 2 & 55 & \classfail\\
+			$S_{3}$  & 2 & 60 & \classfail\\
+			$S_{4}$  & 3 & 60 & \classfail\\
+			$S_{5}$  & 3 & 65 & \classpass\\
+			$S_{6}$  & 4 & 65 & \classpass\\
+			$S_{7}$  & 4 & 70 & \classpass\\
+			$S_{8}$  & 5 & 70 & \classpass\\
+			$S_{9}$  & 5 & 75 & \classpass\\
+			$S_{10}$ & 6 & 80 & \classpass\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	
+	\section{Compute the Feature Statistics}
+	Over the ten students,
+	\[
+	\bar{h}=\sum\limits_{j=1}^{10} h_{j}=3.5,\quad \sigma_{\text{h}}=\sqrt{\dfrac{1}{10}\sum\limits_{j=1}^{10}\left( h_j-\bar{h} \right)^2}=1.5
+	\]
+	
+	\[
+	\bar{a}=\sum\limits_{j=1}^{10} a_{j}=65,\quad \sigma_{\text{a}}=\sqrt{\dfrac{1}{10}\sum\limits_{j=1}^{10}\left( a_j-\bar{a} \right)^2}\approx8.66 .
+	\]
+	Standardize with $z=(x-\mu)/\sigma$. For the query $X=(4,68)$:
+	\[
+	z_1=\frac{4-3.5}{1.5}=0.333,\qquad z_2=\frac{68-65}{8.66}=0.346 .
+	\]
+	
+	\section{Standardized Distances}
+	For example, $S_6=(4,65)\to(0.333,0)$ and $S_8=(5,70)\to(1.0,0.577)$, giving
+	\[
+	d(X,S_6)=\sqrt{0^2+0.346^2}=0.346,\qquad
+	d(X,S_8)=\sqrt{0.667^2+0.231^2}=0.706 .
+	\]
+	\begin{center}
+		\small
+		\setlength{\tabcolsep}{5pt}
+		\renewcommand{\arraystretch}{1.25}
+		\begin{tabular}{c| cc | cc | c | cc}
+			\toprule
+			\multirow{2}{*}{\shortstack{Student\\ $S_j$}}
+			& \multicolumn{2}{c|}{Hours, $h_j$}
+			& \multicolumn{2}{c|}{Attendance (\%)}
+			& \multirow{2}{*}{Class}
+			& \multicolumn{2}{c}{$d(X,S_j)$}\\
+			\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){7-8}
+			& Raw & \shortstack{Standardized\\[2pt]$\dfrac{h_j-\bar{h}}{\sigma_h}$}
+			& Raw & \shortstack{Standardized\\[2pt]$\dfrac{a_j-\bar{a}}{\sigma_a}$}
+			& & Raw & Scaled\\
+			\midrule
+			$S_1$  & 1 & $-1.667$ & 50 & $-1.732$ & \classfail & 18.25 & 2.88\\
+			$S_2$  & 2 & $-1.000$ & 55 & $-1.155$ & \classfail & 13.15 & 2.01\\
+			$S_3$  & 2 & $-1.000$ & 60 & $-0.577$ & \classfail & 8.25  & 1.62\\
+			$S_4$  & 3 & $-0.333$ & 60 & $-0.577$ & \classfail & 8.06  & 1.14\\
+			$S_5$  & 3 & $-0.333$ & 65 & $0.000$  & \classpass & 3.16  & 0.75\\
+			$S_6$  & 4 & $0.333$  & 65 & $0.000$  & \classpass & 3.00  & 0.35\\
+			$S_7$  & 4 & $0.333$  & 70 & $0.577$  & \classpass & 2.00  & 0.23\\
+			$S_8$  & 5 & $1.000$  & 70 & $0.577$  & \classpass & 2.24  & 0.71\\
+			$S_9$  & 5 & $1.000$  & 75 & $1.155$  & \classpass & 7.07  & 1.05\\
+			$S_{10}$ & 6 & $1.667$  & 80 & $1.732$  & \classpass & 12.17 & 1.92\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	
+	\begin{resultbox}
+		Under \emph{raw} distances the $3$ nearest were $\{S_7,S_8,S_6\}$; after
+		\emph{scaling} they are $\{S_7,S_6,S_8\}$---$S_6$ and $S_8$ have \textbf{swapped
+			order} because standardization restored the influence of ``hours''. Here the
+		class (Pass) is unchanged, but on many datasets scaling changes the neighbour
+		set and therefore the prediction. Always scale in practice.
+	\end{resultbox}
+	
+	%==============================================================================
+	\chapter{Worked Example 3: Min--Max Normalization by Hand}
+	\label{ch:minmax}
+	%==============================================================================
+	
+	Chapter~\ref{ch:scaling} used \emph{standardization} (the $z$-score) to put the
+	two features on a common scale. \emph{Min--max normalization} is the other
+	standard rescaling: instead of centring on the mean, it stretches each feature
+	so that its smallest value becomes $0$ and its largest becomes $1$.
+	
+	\section{The Min--Max Formula}
+	For a feature $x$ with minimum $x_{\min}$ and maximum $x_{\max}$,
+	\begin{equation}
+		x'=\frac{x-x_{\min}}{x_{\max}-x_{\min}}\ \in[0,1],
+		\label{eq:minmax}
+	\end{equation}
+	so $x'=0$ at the feature's minimum, $x'=1$ at its maximum, and everything else
+	lands proportionally in between.
+	
+	\section{Feature Ranges}
+	Using the same ten students of Chapter~\ref{ch:scaling}:
+	\[
+	h_{\min}=1,\ h_{\max}=6\ \Rightarrow\ h'=\frac{h-1}{5};\qquad
+	a_{\min}=50,\ a_{\max}=80\ \Rightarrow\ a'=\frac{a-50}{30}.
+	\]
+	The query $X=(4,68)$ therefore normalizes to
+	\[
+	h'=\frac{4-1}{5}=0.6,\qquad a'=\frac{68-50}{30}=\frac{18}{30}=0.6,
+	\qquad\text{so } X'=(0.6,\,0.6).
+	\]
+	
+	\section{Normalized Distances}
+	For example, $S_6=(4,65)\to(0.600,0.500)$ and $S_7=(4,70)\to(0.600,0.667)$,
+	giving
+	\[
+	d(X,S_6)=\sqrt{0^2+0.100^2}=0.100,\qquad
+	d(X,S_7)=\sqrt{0^2+0.067^2}=0.067 .
+	\]
+	\begin{center}
+		\small
+		\setlength{\tabcolsep}{5pt}
+		\renewcommand{\arraystretch}{1.25}
+		\begin{tabular}{c| cc | cc | c | cc}
+			\toprule
+			\multirow{2}{*}{\shortstack{Student\\ $S_j$}}
+			& \multicolumn{2}{c|}{Hours, $h_j$}
+			& \multicolumn{2}{c|}{Attendance (\%)}
+			& \multirow{2}{*}{Class}
+			& \multicolumn{2}{c}{$d(X,S_j)$}\\
+			\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){7-8}
+			& Raw & \shortstack{Normalized\\[2pt]$\dfrac{h_j-h_{\min}}{h_{\max}-h_{\min}}$}
+			& Raw & \shortstack{Normalized\\[2pt]$\dfrac{a_j-a_{\min}}{a_{\max}-a_{\min}}$}
+			& & Raw & Norm.\\
+			\midrule
+			$S_1$  & 1 & $0.000$ & 50 & $0.000$ & \classfail & 18.25 & 0.85\\
+			$S_2$  & 2 & $0.200$ & 55 & $0.167$ & \classfail & 13.15 & 0.59\\
+			$S_3$  & 2 & $0.200$ & 60 & $0.333$ & \classfail & 8.25  & 0.48\\
+			$S_4$  & 3 & $0.400$ & 60 & $0.333$ & \classfail & 8.06  & 0.33\\
+			$S_5$  & 3 & $0.400$ & 65 & $0.500$ & \classpass & 3.16  & 0.22\\
+			$S_6$  & 4 & $0.600$ & 65 & $0.500$ & \classpass & 3.00  & 0.10\\
+			$S_7$  & 4 & $0.600$ & 70 & $0.667$ & \classpass & 2.00  & 0.07\\
+			$S_8$  & 5 & $0.800$ & 70 & $0.667$ & \classpass & 2.24  & 0.21\\
+			$S_9$  & 5 & $0.800$ & 75 & $0.833$ & \classpass & 7.07  & 0.31\\
+			$S_{10}$ & 6 & $1.000$ & 80 & $1.000$ & \classpass & 12.17 & 0.57\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	
+	\begin{resultbox}
+		The three smallest normalized distances are $0.07\ (S_7),\ 0.10\ (S_6),\
+		0.21\ (S_8)$, so the $k=3$ neighbours are $\{S_7,S_6,S_8\}$---all
+		\classpass{}---and $\hat y=\text{Pass}$. As with standardization, $S_6$ now
+		ranks ahead of $S_8$ (they were $S_8$ before $S_6$ under the raw distances),
+		because rescaling gives ``hours'' a fair say.
+	\end{resultbox}
+	
+	\section{Standardization vs.\ Min--Max Normalization}
+	Both rescalings fix the ``attendance dominates'' problem; they differ in how.
+	\begin{center}
+		\begin{tabular}{@{}p{6.4cm}p{6.4cm}@{}}
+			\toprule
+			\textbf{Standardization ($z$-score)} & \textbf{Min--max normalization}\\
+			\midrule
+			$x'=\dfrac{x-\mu}{\sigma}$; mean $0$, variance $1$. &
+			$x'=\dfrac{x-x_{\min}}{x_{\max}-x_{\min}}$; range $[0,1]$.\\
+			Unbounded; centred on the mean. & Bounded to $[0,1]$; anchored to the extremes.\\
+			More robust to outliers (uses $\mu,\sigma$). & Sensitive to outliers (a single
+			extreme value sets $x_{\min}$ or $x_{\max}$).\\
+			Good default for distance-based methods. & Handy when a bounded range is needed
+			(e.g.\ image pixels, neural-net inputs).\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	On this dataset both give the identical neighbour set $\{S_7,S_6,S_8\}$ and the
+	prediction \textbf{Pass}; on data with outliers they can disagree.
+	
+	%==============================================================================
+	\chapter{Worked Example 4: Multi-Class Classification (Three Classes)}
+	\label{ch:multiclass}
+	%==============================================================================
+	
+	KNN needs \emph{no} change to handle more than two classes: it still takes the
+	$k$ nearest neighbours and predicts the majority class. Here a query point $P$
+	sits amid three classes A, B and C (Figure~\ref{fig:multiclass}).
+	
+	\section{The Data}
+	Five labelled points per class:
+	\begin{center}
+		\renewcommand{\arraystretch}{1.2}
+		\begin{tabular}{c c c}
+			\toprule
+			\textbf{Class A} & \textbf{Class B} & \textbf{Class C}\\
+			\midrule
+			$(1,6)$ & $(8,7)$ & $(4,1)$\\
+			$(2,7)$ & $(9,6)$ & $(5,2)$\\
+			$(2,5)$ & $(9,8)$ & $(6,1)$\\
+			$(3,7)$ & $(8,5)$ & $(3,2)$\\
+			$(1,8)$ & $(7,7)$ & $(6,3)$\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	Query point $P=(6,5)$; use $k=7$ and Euclidean distance.
+	
+	\section{Distances from $P$}
+	Squared distance is enough to rank the neighbours ($d^2=(6-x)^2+(5-y)^2$). The
+	fifteen points are listed \textbf{by class} (A, then B, then C); the
+	\textbf{seven nearest} (Rank $\le 7$) are shown in bold.
+	\begin{center}
+		\small
+		\renewcommand{\arraystretch}{1.15}
+		\begin{tabular}{c c c c c}
+			\toprule
+			Class & Point & $d^2$ & $d$ & Rank\\
+			\midrule
+			\multirow{5}{*}{\textbf{A}}
+			& $(1,6)$ & $26$ & $5.10$          & $14$\\
+			& $(2,7)$ & $20$ & $4.47$          & $12$\\
+			& $(2,5)$ & $16$ & $4.00$          & $8$\\
+			& $(3,7)$ & $13$ & $\mathbf{3.61}$ & $\mathbf{7}$\\
+			& $(1,8)$ & $34$ & $5.83$          & $15$\\
+			\midrule
+			\multirow{5}{*}{\textbf{B}}
+			& $(8,7)$ & $8$  & $\mathbf{2.83}$ & $\mathbf{4}$\\
+			& $(9,6)$ & $10$ & $\mathbf{3.16}$ & $\mathbf{6}$\\
+			& $(9,8)$ & $18$ & $4.24$          & $11$\\
+			& $(8,5)$ & $4$  & $\mathbf{2.00}$ & $\mathbf{2}$\\
+			& $(7,7)$ & $5$  & $\mathbf{2.24}$ & $\mathbf{3}$\\
+			\midrule
+			\multirow{5}{*}{\textbf{C}}
+			& $(4,1)$ & $20$ & $4.47$          & $13$\\
+			& $(5,2)$ & $10$ & $\mathbf{3.16}$ & $\mathbf{5}$\\
+			& $(6,1)$ & $16$ & $4.00$          & $9$\\
+			& $(3,2)$ & $18$ & $4.24$          & $10$\\
+			& $(6,3)$ & $4$  & $\mathbf{2.00}$ & $\mathbf{1}$\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	
+	\section{Majority Vote}
+	Counting classes among the seven nearest:
+	\[
+	N(\text{B})=4\ \{(8,5),(7,7),(8,7),(9,6)\},\quad
+	N(\text{C})=2\ \{(6,3),(5,2)\},\quad
+	N(\text{A})=1\ \{(3,7)\}.
+	\]
+	\begin{resultbox}
+		\[ \boxed{\hat y=\text{Class B}} \]
+		Class B has the most votes ($4$ of $7$), so $P$ is assigned to \textbf{Class B}.
+	\end{resultbox}
+	\begin{remark}
+		The single closest point is a \emph{tie} between a C point $(6,3)$ and a B point
+		$(8,5)$ (both $d=2$), so $1$-NN is ambiguous---yet the $k=7$ vote is decisively
+		B. In fact B wins at $k=3$ ($2$--$1$), $k=5$ ($3$--$2$) and $k=7$ ($4$--$2$--$1$)
+		alike. Majority voting is more robust than trusting the single nearest point.
+	\end{remark}
+	
+	\section{Visual Interpretation}
+	\begin{figure}[ht]
+		\centering
+		\begin{tikzpicture}
+			\begin{axis}[
+				width=0.82\textwidth, unit vector ratio=1 1,
+				axis lines=middle, xlabel={$x_1$}, ylabel={$x_2$},
+				xlabel style={anchor=north west}, ylabel style={anchor=south east},
+				xmin=0, xmax=10.5, ymin=0, ymax=9.6,
+				xtick={1,2,3,4,5,6,7,8,9,10}, ytick={1,2,3,4,5,6,7,8,9},
+				tick label style={font=\scriptsize}, grid=both,
+				major grid style={line width=0.2pt,draw=gray!30},
+				legend pos=south east, legend cell align=left, clip=false]
+				% dashed class clouds
+				\draw[cnavy,dashed,thick,fill=cnavy!8]   (axis cs:1.8,6.6) ellipse [x radius=1.6,y radius=1.9];
+				\draw[cteal,dashed,thick,fill=cteal!10]  (axis cs:8.2,6.6) ellipse [x radius=1.5,y radius=1.9];
+				\draw[ccoral,dashed,thick,fill=ccoral!8] (axis cs:4.5,1.8) ellipse [x radius=2.1,y radius=1.4];
+				% data points (+ legend)
+				\addplot[only marks,mark=*,mark size=2.5pt,color=cnavy] coordinates {(1,6)(2,7)(2,5)(3,7)(1,8)};
+				\addlegendentry{Class A}
+				\addplot[only marks,mark=square*,mark size=2.5pt,color=cteal] coordinates {(8,7)(9,6)(9,8)(8,5)(7,7)};
+				\addlegendentry{Class B}
+				\addplot[only marks,mark=diamond*,mark size=3pt,color=ccoral] coordinates {(4,1)(5,2)(6,1)(3,2)(6,3)};
+				\addlegendentry{Class C}
+				\addplot[only marks,mark=star,mark size=4pt,color=magenta] coordinates {(6,5)};
+				\addlegendentry{Query $P$}
+				% arrows from P to the nearest member of each class
+				\draw[-{Latex[length=2mm]},thick] (axis cs:6,5)--(axis cs:3,7);
+				\draw[-{Latex[length=2mm]},thick] (axis cs:6,5)--(axis cs:8,5);
+				\draw[-{Latex[length=2mm]},thick] (axis cs:6,5)--(axis cs:6,3);
+				% coordinate labels
+				\node[font=\scriptsize,anchor=south] at (axis cs:1,6) {$(1,6)$};
+				\node[font=\scriptsize,anchor=south] at (axis cs:2,7) {$(2,7)$};
+				\node[font=\scriptsize,anchor=south] at (axis cs:2,5) {$(2,5)$};
+				\node[font=\scriptsize,anchor=south] at (axis cs:3,7) {$(3,7)$};
+				\node[font=\scriptsize,anchor=south] at (axis cs:1,8) {$(1,8)$};
+				\node[font=\scriptsize,anchor=south] at (axis cs:8,7) {$(8,7)$};
+				\node[font=\scriptsize,anchor=south] at (axis cs:9,6) {$(9,6)$};
+				\node[font=\scriptsize,anchor=south] at (axis cs:9,8) {$(9,8)$};
+				\node[font=\scriptsize,anchor=south] at (axis cs:8,5) {$(8,5)$};
+				\node[font=\scriptsize,anchor=south] at (axis cs:7,7) {$(7,7)$};
+				\node[font=\scriptsize,anchor=south] at (axis cs:4,1) {$(4,1)$};
+				\node[font=\scriptsize,anchor=south] at (axis cs:5,2) {$(5,2)$};
+				\node[font=\scriptsize,anchor=south] at (axis cs:6,1) {$(6,1)$};
+				\node[font=\scriptsize,anchor=south] at (axis cs:3,2) {$(3,2)$};
+				\node[font=\scriptsize,anchor=west] at (axis cs:6,3) {$(6,3)$};
+				\node[font=\scriptsize\bfseries,anchor=north west] at (axis cs:6,5) {$P(6,5)$};
+			\end{axis}
+		\end{tikzpicture}
+		\caption{Three-class KNN. The dashed clouds show classes A, B and C; arrows
+			point from the query $P$ to the nearest member of each class. Although Class C
+			owns one of the two joint-nearest points, the neighbourhood of $P$ holds more
+			Class B points, so the $k=7$ majority vote returns \textbf{Class B}.}
+		\label{fig:multiclass}
+	\end{figure}
+	
+	%==============================================================================
+	\chapter{Worked Example 5: KNN Regression by Hand}
 	\label{ch:regress}
 	%==============================================================================
 	
@@ -625,328 +947,6 @@ urlcolor=blue!55!black,linktocpage=true]{hyperref}
 	Adding a feature can change the prediction dramatically---but if the new feature
 	has a larger scale, that change is an \emph{artefact of units}. Always scale
 	before adding features of different ranges.
-	
-	%==============================================================================
-	\chapter{Worked Example 3: Feature Scaling by Hand}
-	\label{ch:scaling}
-	%==============================================================================
-	
-	We revisit the classification data of Chapter~\ref{ch:classify} to see
-	\emph{why} scaling (Section~\ref{sec:scaling}) matters. In the raw distances,
-	attendance (range $50$--$80$) completely dominates hours (range $1$--$6$): every
-	distance was essentially the attendance gap. We now standardize both features.
-	
-	\section{Training Dataset}
-	\begin{center}
-		\renewcommand{\arraystretch}{1.2}
-		\begin{tabular}{c c c c}
-			\toprule
-			\textbf{Student} & \textbf{Hours} & \textbf{Attendance (\%)} & \textbf{Class}\\
-			$S_{j}$ & $h_{j}$ & $a_{j}$ & \\
-			\midrule
-			$S_{1}$  & 1 & 50 & \classfail\\
-			$S_{2}$  & 2 & 55 & \classfail\\
-			$S_{3}$  & 2 & 60 & \classfail\\
-			$S_{4}$  & 3 & 60 & \classfail\\
-			$S_{5}$  & 3 & 65 & \classpass\\
-			$S_{6}$  & 4 & 65 & \classpass\\
-			$S_{7}$  & 4 & 70 & \classpass\\
-			$S_{8}$  & 5 & 70 & \classpass\\
-			$S_{9}$  & 5 & 75 & \classpass\\
-			$S_{10}$ & 6 & 80 & \classpass\\
-			\bottomrule
-		\end{tabular}
-	\end{center}
-	
-	\section{Compute the Feature Statistics}
-	Over the ten students,
-	\[
-	\bar{h}=\sum\limits_{j=1}^{10} h_{j}=3.5,\quad \sigma_{\text{h}}=\sqrt{\dfrac{1}{10}\sum\limits_{j=1}^{10}\left( h_j-\bar{h} \right)^2}=1.5
-	\]
-	
-	\[
-	\bar{a}=\sum\limits_{j=1}^{10} a_{j}=65,\quad \sigma_{\text{a}}=\sqrt{\dfrac{1}{10}\sum\limits_{j=1}^{10}\left( a_j-\bar{a} \right)^2}\approx8.66 .
-	\]
-	Standardize with $z=(x-\mu)/\sigma$. For the query $X=(4,68)$:
-	\[
-	z_1=\frac{4-3.5}{1.5}=0.333,\qquad z_2=\frac{68-65}{8.66}=0.346 .
-	\]
-	
-	\section{Standardized Distances}
-	For example, $S_6=(4,65)\to(0.333,0)$ and $S_8=(5,70)\to(1.0,0.577)$, giving
-	\[
-	d(X,S_6)=\sqrt{0^2+0.346^2}=0.346,\qquad
-	d(X,S_8)=\sqrt{0.667^2+0.231^2}=0.706 .
-	\]
-	\begin{center}
-		\small
-		\setlength{\tabcolsep}{5pt}
-		\renewcommand{\arraystretch}{1.25}
-		\begin{tabular}{c| cc | cc | c | cc}
-			\toprule
-			\multirow{2}{*}{\shortstack{Student\\ $S_j$}}
-			& \multicolumn{2}{c|}{Hours, $h_j$}
-			& \multicolumn{2}{c|}{Attendance (\%)}
-			& \multirow{2}{*}{Class}
-			& \multicolumn{2}{c}{$d(X,S_j)$}\\
-			\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){7-8}
-			& Raw & \shortstack{Standardized\\[2pt]$\dfrac{h_j-\bar{h}}{\sigma_h}$}
-			& Raw & \shortstack{Standardized\\[2pt]$\dfrac{a_j-\bar{a}}{\sigma_a}$}
-			& & Raw & Scaled\\
-			\midrule
-			$S_1$  & 1 & $-1.667$ & 50 & $-1.732$ & \classfail & 18.25 & 2.88\\
-			$S_2$  & 2 & $-1.000$ & 55 & $-1.155$ & \classfail & 13.15 & 2.01\\
-			$S_3$  & 2 & $-1.000$ & 60 & $-0.577$ & \classfail & 8.25  & 1.62\\
-			$S_4$  & 3 & $-0.333$ & 60 & $-0.577$ & \classfail & 8.06  & 1.14\\
-			$S_5$  & 3 & $-0.333$ & 65 & $0.000$  & \classpass & 3.16  & 0.75\\
-			$S_6$  & 4 & $0.333$  & 65 & $0.000$  & \classpass & 3.00  & 0.35\\
-			$S_7$  & 4 & $0.333$  & 70 & $0.577$  & \classpass & 2.00  & 0.23\\
-			$S_8$  & 5 & $1.000$  & 70 & $0.577$  & \classpass & 2.24  & 0.71\\
-			$S_9$  & 5 & $1.000$  & 75 & $1.155$  & \classpass & 7.07  & 1.05\\
-			$S_{10}$ & 6 & $1.667$  & 80 & $1.732$  & \classpass & 12.17 & 1.92\\
-			\bottomrule
-		\end{tabular}
-	\end{center}
-	
-	\begin{resultbox}
-		Under \emph{raw} distances the $3$ nearest were $\{S_7,S_8,S_6\}$; after
-		\emph{scaling} they are $\{S_7,S_6,S_8\}$---$S_6$ and $S_8$ have \textbf{swapped
-			order} because standardization restored the influence of ``hours''. Here the
-		class (Pass) is unchanged, but on many datasets scaling changes the neighbour
-		set and therefore the prediction. Always scale in practice.
-	\end{resultbox}
-	
-	%==============================================================================
-	\chapter{Worked Example 4: Min--Max Normalization by Hand}
-	\label{ch:minmax}
-	%==============================================================================
-	
-	Chapter~\ref{ch:scaling} used \emph{standardization} (the $z$-score) to put the
-	two features on a common scale. \emph{Min--max normalization} is the other
-	standard rescaling: instead of centring on the mean, it stretches each feature
-	so that its smallest value becomes $0$ and its largest becomes $1$.
-	
-	\section{The Min--Max Formula}
-	For a feature $x$ with minimum $x_{\min}$ and maximum $x_{\max}$,
-	\begin{equation}
-	x'=\frac{x-x_{\min}}{x_{\max}-x_{\min}}\ \in[0,1],
-	\label{eq:minmax}
-	\end{equation}
-	so $x'=0$ at the feature's minimum, $x'=1$ at its maximum, and everything else
-	lands proportionally in between.
-	
-	\section{Feature Ranges}
-	Using the same ten students of Chapter~\ref{ch:scaling}:
-	\[
-	h_{\min}=1,\ h_{\max}=6\ \Rightarrow\ h'=\frac{h-1}{5};\qquad
-	a_{\min}=50,\ a_{\max}=80\ \Rightarrow\ a'=\frac{a-50}{30}.
-	\]
-	The query $X=(4,68)$ therefore normalizes to
-	\[
-	h'=\frac{4-1}{5}=0.6,\qquad a'=\frac{68-50}{30}=\frac{18}{30}=0.6,
-	\qquad\text{so } X'=(0.6,\,0.6).
-	\]
-	
-	\section{Normalized Distances}
-	For example, $S_6=(4,65)\to(0.600,0.500)$ and $S_7=(4,70)\to(0.600,0.667)$,
-	giving
-	\[
-	d(X,S_6)=\sqrt{0^2+0.100^2}=0.100,\qquad
-	d(X,S_7)=\sqrt{0^2+0.067^2}=0.067 .
-	\]
-	\begin{center}
-	\small
-	\setlength{\tabcolsep}{5pt}
-	\renewcommand{\arraystretch}{1.25}
-	\begin{tabular}{c| cc | cc | c | cc}
-	\toprule
-	\multirow{2}{*}{\shortstack{Student\\ $S_j$}}
-	& \multicolumn{2}{c|}{Hours, $h_j$}
-	& \multicolumn{2}{c|}{Attendance (\%)}
-	& \multirow{2}{*}{Class}
-	& \multicolumn{2}{c}{$d(X,S_j)$}\\
-	\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){7-8}
-	& Raw & \shortstack{Normalized\\[2pt]$\dfrac{h_j-h_{\min}}{h_{\max}-h_{\min}}$}
-	& Raw & \shortstack{Normalized\\[2pt]$\dfrac{a_j-a_{\min}}{a_{\max}-a_{\min}}$}
-	& & Raw & Norm.\\
-	\midrule
-	$S_1$  & 1 & $0.000$ & 50 & $0.000$ & \classfail & 18.25 & 0.85\\
-	$S_2$  & 2 & $0.200$ & 55 & $0.167$ & \classfail & 13.15 & 0.59\\
-	$S_3$  & 2 & $0.200$ & 60 & $0.333$ & \classfail & 8.25  & 0.48\\
-	$S_4$  & 3 & $0.400$ & 60 & $0.333$ & \classfail & 8.06  & 0.33\\
-	$S_5$  & 3 & $0.400$ & 65 & $0.500$ & \classpass & 3.16  & 0.22\\
-	$S_6$  & 4 & $0.600$ & 65 & $0.500$ & \classpass & 3.00  & 0.10\\
-	$S_7$  & 4 & $0.600$ & 70 & $0.667$ & \classpass & 2.00  & 0.07\\
-	$S_8$  & 5 & $0.800$ & 70 & $0.667$ & \classpass & 2.24  & 0.21\\
-	$S_9$  & 5 & $0.800$ & 75 & $0.833$ & \classpass & 7.07  & 0.31\\
-	$S_{10}$ & 6 & $1.000$ & 80 & $1.000$ & \classpass & 12.17 & 0.57\\
-	\bottomrule
-	\end{tabular}
-	\end{center}
-	
-	\begin{resultbox}
-	The three smallest normalized distances are $0.07\ (S_7),\ 0.10\ (S_6),\
-	0.21\ (S_8)$, so the $k=3$ neighbours are $\{S_7,S_6,S_8\}$---all
-	\classpass{}---and $\hat y=\text{Pass}$. As with standardization, $S_6$ now
-	ranks ahead of $S_8$ (they were $S_8$ before $S_6$ under the raw distances),
-	because rescaling gives ``hours'' a fair say.
-	\end{resultbox}
-	
-	\section{Standardization vs.\ Min--Max Normalization}
-	Both rescalings fix the ``attendance dominates'' problem; they differ in how.
-	\begin{center}
-	\begin{tabular}{@{}p{6.4cm}p{6.4cm}@{}}
-	\toprule
-	\textbf{Standardization ($z$-score)} & \textbf{Min--max normalization}\\
-	\midrule
-	$x'=\dfrac{x-\mu}{\sigma}$; mean $0$, variance $1$. &
-	$x'=\dfrac{x-x_{\min}}{x_{\max}-x_{\min}}$; range $[0,1]$.\\
-	Unbounded; centred on the mean. & Bounded to $[0,1]$; anchored to the extremes.\\
-	More robust to outliers (uses $\mu,\sigma$). & Sensitive to outliers (a single
-	extreme value sets $x_{\min}$ or $x_{\max}$).\\
-	Good default for distance-based methods. & Handy when a bounded range is needed
-	(e.g.\ image pixels, neural-net inputs).\\
-	\bottomrule
-	\end{tabular}
-	\end{center}
-	On this dataset both give the identical neighbour set $\{S_7,S_6,S_8\}$ and the
-	prediction \textbf{Pass}; on data with outliers they can disagree.
-	
-	%==============================================================================
-	\chapter{Worked Example 5: Multi-Class Classification (Three Classes)}
-	\label{ch:multiclass}
-	%==============================================================================
-	
-	KNN needs \emph{no} change to handle more than two classes: it still takes the
-	$k$ nearest neighbours and predicts the majority class. Here a query point $P$
-	sits amid three classes A, B and C (Figure~\ref{fig:multiclass}).
-	
-	\section{The Data}
-	Five labelled points per class:
-	\begin{center}
-	\renewcommand{\arraystretch}{1.2}
-	\begin{tabular}{c c c}
-	\toprule
-	\textbf{Class A} & \textbf{Class B} & \textbf{Class C}\\
-	\midrule
-	$(1,6)$ & $(8,7)$ & $(4,1)$\\
-	$(2,7)$ & $(9,6)$ & $(5,2)$\\
-	$(2,5)$ & $(9,8)$ & $(6,1)$\\
-	$(3,7)$ & $(8,5)$ & $(3,2)$\\
-	$(1,8)$ & $(7,7)$ & $(6,3)$\\
-	\bottomrule
-	\end{tabular}
-	\end{center}
-	Query point $P=(6,5)$; use $k=7$ and Euclidean distance.
-	
-	\section{Distances from $P$}
-	Squared distance is enough to rank the neighbours ($d^2=(6-x)^2+(5-y)^2$). The
-	fifteen points are listed \textbf{by class} (A, then B, then C); the
-	\textbf{seven nearest} (Rank $\le 7$) are shown in bold.
-	\begin{center}
-	\small
-	\renewcommand{\arraystretch}{1.15}
-	\begin{tabular}{c c c c c}
-	\toprule
-	Class & Point & $d^2$ & $d$ & Rank\\
-	\midrule
-	\multirow{5}{*}{\textbf{A}}
-	 & $(1,6)$ & $26$ & $5.10$          & $14$\\
-	 & $(2,7)$ & $20$ & $4.47$          & $12$\\
-	 & $(2,5)$ & $16$ & $4.00$          & $8$\\
-	 & $(3,7)$ & $13$ & $\mathbf{3.61}$ & $\mathbf{7}$\\
-	 & $(1,8)$ & $34$ & $5.83$          & $15$\\
-	\midrule
-	\multirow{5}{*}{\textbf{B}}
-	 & $(8,7)$ & $8$  & $\mathbf{2.83}$ & $\mathbf{4}$\\
-	 & $(9,6)$ & $10$ & $\mathbf{3.16}$ & $\mathbf{6}$\\
-	 & $(9,8)$ & $18$ & $4.24$          & $11$\\
-	 & $(8,5)$ & $4$  & $\mathbf{2.00}$ & $\mathbf{2}$\\
-	 & $(7,7)$ & $5$  & $\mathbf{2.24}$ & $\mathbf{3}$\\
-	\midrule
-	\multirow{5}{*}{\textbf{C}}
-	 & $(4,1)$ & $20$ & $4.47$          & $13$\\
-	 & $(5,2)$ & $10$ & $\mathbf{3.16}$ & $\mathbf{5}$\\
-	 & $(6,1)$ & $16$ & $4.00$          & $9$\\
-	 & $(3,2)$ & $18$ & $4.24$          & $10$\\
-	 & $(6,3)$ & $4$  & $\mathbf{2.00}$ & $\mathbf{1}$\\
-	\bottomrule
-	\end{tabular}
-	\end{center}
-	
-	\section{Majority Vote}
-	Counting classes among the seven nearest:
-	\[
-	N(\text{B})=4\ \{(8,5),(7,7),(8,7),(9,6)\},\quad
-	N(\text{C})=2\ \{(6,3),(5,2)\},\quad
-	N(\text{A})=1\ \{(3,7)\}.
-	\]
-	\begin{resultbox}
-	\[ \boxed{\hat y=\text{Class B}} \]
-	Class B has the most votes ($4$ of $7$), so $P$ is assigned to \textbf{Class B}.
-	\end{resultbox}
-	\begin{remark}
-	The single closest point is a \emph{tie} between a C point $(6,3)$ and a B point
-	$(8,5)$ (both $d=2$), so $1$-NN is ambiguous---yet the $k=7$ vote is decisively
-	B. In fact B wins at $k=3$ ($2$--$1$), $k=5$ ($3$--$2$) and $k=7$ ($4$--$2$--$1$)
-	alike. Majority voting is more robust than trusting the single nearest point.
-	\end{remark}
-	
-	\section{Visual Interpretation}
-	\begin{figure}[ht]
-	\centering
-	\begin{tikzpicture}
-	\begin{axis}[
-	  width=0.82\textwidth, unit vector ratio=1 1,
-	  axis lines=middle, xlabel={$x_1$}, ylabel={$x_2$},
-	  xlabel style={anchor=north west}, ylabel style={anchor=south east},
-	  xmin=0, xmax=10.5, ymin=0, ymax=9.6,
-	  xtick={1,2,3,4,5,6,7,8,9,10}, ytick={1,2,3,4,5,6,7,8,9},
-	  tick label style={font=\scriptsize}, grid=both,
-	  major grid style={line width=0.2pt,draw=gray!30},
-	  legend pos=north west, legend cell align=left, clip=false]
-	% dashed class clouds
-	\draw[cnavy,dashed,thick,fill=cnavy!8]   (axis cs:1.8,6.6) ellipse [x radius=1.6,y radius=1.9];
-	\draw[cteal,dashed,thick,fill=cteal!10]  (axis cs:8.2,6.6) ellipse [x radius=1.5,y radius=1.9];
-	\draw[ccoral,dashed,thick,fill=ccoral!8] (axis cs:4.5,1.8) ellipse [x radius=2.1,y radius=1.4];
-	% data points (+ legend)
-	\addplot[only marks,mark=*,mark size=2.5pt,color=cnavy] coordinates {(1,6)(2,7)(2,5)(3,7)(1,8)};
-	\addlegendentry{Class A}
-	\addplot[only marks,mark=square*,mark size=2.5pt,color=cteal] coordinates {(8,7)(9,6)(9,8)(8,5)(7,7)};
-	\addlegendentry{Class B}
-	\addplot[only marks,mark=diamond*,mark size=3pt,color=ccoral] coordinates {(4,1)(5,2)(6,1)(3,2)(6,3)};
-	\addlegendentry{Class C}
-	\addplot[only marks,mark=star,mark size=4pt,color=corange] coordinates {(6,5)};
-	\addlegendentry{Query $P$}
-	% arrows from P to the nearest member of each class
-	\draw[-{Latex[length=2mm]},thick] (axis cs:6,5)--(axis cs:3,7);
-	\draw[-{Latex[length=2mm]},thick] (axis cs:6,5)--(axis cs:8,5);
-	\draw[-{Latex[length=2mm]},thick] (axis cs:6,5)--(axis cs:6,3);
-	% coordinate labels
-	\node[font=\scriptsize,anchor=south] at (axis cs:1,6) {$(1,6)$};
-	\node[font=\scriptsize,anchor=south] at (axis cs:2,7) {$(2,7)$};
-	\node[font=\scriptsize,anchor=south] at (axis cs:2,5) {$(2,5)$};
-	\node[font=\scriptsize,anchor=south] at (axis cs:3,7) {$(3,7)$};
-	\node[font=\scriptsize,anchor=south] at (axis cs:1,8) {$(1,8)$};
-	\node[font=\scriptsize,anchor=south] at (axis cs:8,7) {$(8,7)$};
-	\node[font=\scriptsize,anchor=south] at (axis cs:9,6) {$(9,6)$};
-	\node[font=\scriptsize,anchor=south] at (axis cs:9,8) {$(9,8)$};
-	\node[font=\scriptsize,anchor=south] at (axis cs:8,5) {$(8,5)$};
-	\node[font=\scriptsize,anchor=south] at (axis cs:7,7) {$(7,7)$};
-	\node[font=\scriptsize,anchor=south] at (axis cs:4,1) {$(4,1)$};
-	\node[font=\scriptsize,anchor=south] at (axis cs:5,2) {$(5,2)$};
-	\node[font=\scriptsize,anchor=south] at (axis cs:6,1) {$(6,1)$};
-	\node[font=\scriptsize,anchor=south] at (axis cs:3,2) {$(3,2)$};
-	\node[font=\scriptsize,anchor=west] at (axis cs:6,3) {$(6,3)$};
-	\node[font=\scriptsize\bfseries,anchor=north west] at (axis cs:6,5) {$P(6,5)$};
-	\end{axis}
-	\end{tikzpicture}
-	\caption{Three-class KNN. The dashed clouds show classes A, B and C; arrows
-	point from the query $P$ to the nearest member of each class. Although Class C
-	owns one of the two joint-nearest points, the neighbourhood of $P$ holds more
-	Class B points, so the $k=7$ majority vote returns \textbf{Class B}.}
-	\label{fig:multiclass}
-	\end{figure}
 	
 	%==============================================================================
 	\chapter{Advantages, Disadvantages and Code}
