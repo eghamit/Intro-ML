@@ -575,64 +575,96 @@ $\{B\}$, $\{D\}$.
 \label{ch:complete}
 %==============================================================================
 
-We repeat the procedure on the \emph{same} data \eqref{eq:D0}, but now with
-\textbf{complete linkage}, where cluster distance is the \emph{maximum} of the
-pairwise distances. The only change is that updates take the element-wise
-\emph{maximum}.
+For a larger practice problem we cluster \textbf{six} objects
+$P_1,\dots,P_6$ using \textbf{complete linkage}, where the distance between two
+clusters is the \emph{maximum} of the pairwise distances. At each step we merge
+the closest pair and update the matrix by element-wise \emph{maxima}. The given
+proximity matrix is
+\begin{equation}
+\mathbf{D}^{(0)}=
+\begin{array}{c|cccccc}
+    & P_1 & P_2 & P_3 & P_4 & P_5 & P_6\\ \hline
+P_1 & 0  & 2 & 6  & 10 & 9 & 8\\
+P_2 & 2  & 0 & 5  & 9  & 8 & 7\\
+P_3 & 6  & 5 & 0  & 4  & 5 & 6\\
+P_4 & 10 & 9 & 4  & 0  & 3 & 5\\
+P_5 & 9  & 8 & 5  & 3  & 0 & 2\\
+P_6 & 8  & 7 & 6  & 5  & 2 & 0
+\end{array}
+\label{eq:D0c}
+\end{equation}
 
 \section{Step 1}
-Minimum entry is still $D_{CE}=2$: \textbf{merge $C,E$} at height $2$. Update by
-\emph{maxima}, $d((CE),X)=\max\{d(C,X),d(E,X)\}$:
+The smallest off-diagonal entry is $2$, attained by both $P_1P_2$ and $P_5P_6$;
+we take $P_1,P_2$ first. \textbf{Merge $P_1,P_2$} at height $2$ and update by
+maxima, $d((P_1P_2),X)=\max\{d(P_1,X),d(P_2,X)\}$:
 \[
-d((CE),A)=\max(3,11)=11,\quad d((CE),B)=\max(7,10)=10,\quad
-d((CE),D)=\max(9,8)=9.
+d((P_1P_2),P_3)=\max(6,5)=6,\quad d((P_1P_2),P_4)=\max(10,9)=10,\quad
+d((P_1P_2),P_5)=\max(9,8)=9,\quad d((P_1P_2),P_6)=\max(8,7)=8.
 \]
 \begin{equation}
 \mathbf{D}^{(1)}=
-\begin{array}{c|cccc}
-    & A & B & D & (CE)\\ \hline
-A   & 0 & 9 & 6 & 11\\
-B   & 9 & 0 & 5 & 10\\
-D   & 6 & 5 & 0 & 9\\
-(CE)&11 &10 & 9 & 0
+\begin{array}{c|ccccc}
+       & (P_1P_2) & P_3 & P_4 & P_5 & P_6\\ \hline
+(P_1P_2) & 0  & 6 & 10 & 9 & 8\\
+P_3    & 6  & 0 & 4  & 5 & 6\\
+P_4    & 10 & 4 & 0  & 3 & 5\\
+P_5    & 9  & 5 & 3  & 0 & 2\\
+P_6    & 8  & 6 & 5  & 2 & 0
 \end{array}
 \end{equation}
 
 \section{Step 2}
-Smallest remaining entry is $d(B,D)=5$: \textbf{merge $B,D$} at height $5$.
-Update by maxima:
+The smallest remaining entry is $2$ ($P_5P_6$). \textbf{Merge $P_5,P_6$} at
+height $2$:
 \[
-d((BD),A)=\max(9,6)=9,\qquad d((BD),(CE))=\max(10,9)=10.
+d((P_5P_6),(P_1P_2))=\max(9,8)=9,\quad d((P_5P_6),P_3)=\max(5,6)=6,\quad
+d((P_5P_6),P_4)=\max(3,5)=5.
 \]
 \begin{equation}
 \mathbf{D}^{(2)}=
-\begin{array}{c|ccc}
-     & A & (CE) & (BD)\\ \hline
-A    & 0 & 11 & 9\\
-(CE) &11 & 0  & 10\\
-(BD) & 9 & 10 & 0
+\begin{array}{c|cccc}
+       & (P_1P_2) & P_3 & P_4 & (P_5P_6)\\ \hline
+(P_1P_2) & 0  & 6 & 10 & 9\\
+P_3    & 6  & 0 & 4  & 6\\
+P_4    & 10 & 4 & 0  & 5\\
+(P_5P_6) & 9  & 6 & 5  & 0
 \end{array}
 \end{equation}
-Notice that complete linkage merges $B,D$ \emph{second} here, whereas single
-linkage merged $A$ with $(CE)$ second---the trees already diverge.
 
 \section{Step 3}
-Smallest entry is $d(A,(BD))=9$: \textbf{merge $A$ with $(BD)$} into $(ABD)$ at
-height $9$. Update:
+The smallest entry is $d(P_3,P_4)=4$. \textbf{Merge $P_3,P_4$} at height $4$:
 \[
-d((ABD),(CE))=\max\bigl(d(A,(CE)),d((BD),(CE))\bigr)=\max(11,10)=11.
+d((P_3P_4),(P_1P_2))=\max(6,10)=10,\qquad d((P_3P_4),(P_5P_6))=\max(6,5)=6.
 \]
 \begin{equation}
 \mathbf{D}^{(3)}=
-\begin{array}{c|cc}
-     & (ABD) & (CE)\\ \hline
-(ABD)& 0 & 11\\
-(CE) &11 & 0
+\begin{array}{c|ccc}
+        & (P_1P_2) & (P_3P_4) & (P_5P_6)\\ \hline
+(P_1P_2)  & 0  & 10 & 9\\
+(P_3P_4)  & 10 & 0  & 6\\
+(P_5P_6)  & 9  & 6  & 0
 \end{array}
 \end{equation}
 
 \section{Step 4}
-Merge the last two clusters $(ABD)$ and $(CE)$ at height $11$.
+The smallest entry is $d((P_3P_4),(P_5P_6))=6$. \textbf{Merge} them at height $6$
+into $(P_3P_4P_5P_6)$:
+\[
+d\bigl((P_3P_4P_5P_6),(P_1P_2)\bigr)=\max(10,9)=10.
+\]
+\begin{equation}
+\mathbf{D}^{(4)}=
+\begin{array}{c|cc}
+             & (P_1P_2) & (P_3P_4P_5P_6)\\ \hline
+(P_1P_2)       & 0  & 10\\
+(P_3P_4P_5P_6) & 10 & 0
+\end{array}
+\end{equation}
+
+\section{Step 5}
+Only two clusters remain; merge $(P_1P_2)$ and $(P_3P_4P_5P_6)$ at height $10$
+into the root $\{P_1,\dots,P_6\}$.
 
 \section{Merge Summary and Dendrogram}
 \begin{center}
@@ -640,27 +672,32 @@ Merge the last two clusters $(ABD)$ and $(CE)$ at height $11$.
 \toprule
 Step & Clusters merged & Height & \# clusters after\\
 \midrule
-1 & $C,\;E$          & $2$  & 4\\
-2 & $B,\;D$          & $5$  & 3\\
-3 & $A,\;(BD)$       & $9$  & 2\\
-4 & $(ABD),\;(CE)$   & $11$ & 1\\
+1 & $P_1,\;P_2$              & $2$  & 5\\
+2 & $P_5,\;P_6$              & $2$  & 4\\
+3 & $P_3,\;P_4$              & $4$  & 3\\
+4 & $(P_3P_4),\;(P_5P_6)$    & $6$  & 2\\
+5 & $(P_1P_2),\;(P_3P_4P_5P_6)$ & $10$ & 1\\
 \bottomrule
 \end{tabular}
 \end{center}
 
 \begin{figure}[ht]
 \centering
-\begin{tikzpicture}[yscale=0.38,xscale=1.15]
-\foreach \x/\l in {1/C,2/E,3/A,4/B,5/D} \node[below] at (\x,0){\l};
-\merge{1}{0}{2}{0}{2}         % C,E at 2 -> x=1.5
-\merge{4}{0}{5}{0}{5}         % B,D at 5 -> x=4.5
-\merge{3}{0}{4.5}{5}{9}       % A,(BD) at 9 -> x=3.75
-\merge{1.5}{2}{3.75}{9}{11}   % (CE),(ABD) at 11
-\draw[->] (0.2,0)--(0.2,12.5) node[above]{\scriptsize height};
-\foreach \y in {2,5,9,11} \draw (0.1,\y)--(0.3,\y) node[left]{\scriptsize \y};
+\begin{tikzpicture}[yscale=0.42,xscale=1.05]
+\foreach \x/\l in {1/{P_1},2/{P_2},3/{P_3},4/{P_4},5/{P_5},6/{P_6}}
+  \node[below] at (\x,0){$\l$};
+\merge{1}{0}{2}{0}{2}          % P1,P2 at 2  -> x=1.5
+\merge{5}{0}{6}{0}{2}          % P5,P6 at 2  -> x=5.5
+\merge{3}{0}{4}{0}{4}          % P3,P4 at 4  -> x=3.5
+\merge{3.5}{4}{5.5}{2}{6}      % (P3P4),(P5P6) at 6 -> x=4.5
+\merge{1.5}{2}{4.5}{6}{10}     % (P1P2),(P3P4P5P6) at 10
+\draw[->] (0.2,0)--(0.2,11.5) node[above]{\scriptsize height};
+\foreach \y in {2,4,6,10} \draw (0.1,\y)--(0.3,\y) node[left]{\scriptsize \y};
 \end{tikzpicture}
-\caption{Complete-linkage dendrogram on the same data. The merge heights are
-larger and the tree is more balanced/compact than the single-linkage tree.}
+\caption{Complete-linkage dendrogram for the six objects. The two tight pairs
+$\{P_1,P_2\}$ and $\{P_5,P_6\}$ form first (height $2$), then $\{P_3,P_4\}$,
+which joins $\{P_5,P_6\}$; the far-apart group $\{P_1,P_2\}$ merges last at the
+large height $10$.}
 \label{fig:compdend}
 \end{figure}
 
@@ -730,9 +767,9 @@ Step & Clusters merged & Height\\
 \bottomrule
 \end{tabular}
 \end{center}
-The order of merges here matches complete linkage in its first two steps but
-matches single linkage in step~3 ($A$ joins $(CE)$)---illustrating how average
-linkage sits ``between'' the two extremes.
+Average linkage attaches $A$ to $(CE)$ only at step~3 (as single linkage does),
+yet merges $B,D$ earlier at step~2---illustrating how average linkage sits
+``between'' the single- and complete-linkage extremes.
 
 %==============================================================================
 \chapter{Worked Example 4: Divisive Clustering --- DIANA (by hand)}
@@ -1006,10 +1043,11 @@ linkage.\\
 
 \begin{example}[Cutting for $k=3$]
 Using the complete-linkage dendrogram (Figure~\ref{fig:compdend}), list the
-three clusters obtained by cutting just below height $9$.\\
-\textbf{Solution.} The merge of $A$ with $(BD)$ happens \emph{at} height $9$,
-so a cut just below $9$ severs it along with everything above. The remaining
-clusters are $\{A\}$, $\{B,D\}$ and $\{C,E\}$ --- three clusters, as required.
+three clusters obtained by cutting just below height $6$.\\
+\textbf{Solution.} The merge of $(P_3P_4)$ with $(P_5P_6)$ happens \emph{at}
+height $6$ (and the root at $10$); cutting just below $6$ severs both. The
+remaining clusters are $\{P_1,P_2\}$, $\{P_3,P_4\}$ and $\{P_5,P_6\}$ --- three
+clusters, as required.
 \end{example}
 
 \section{Unsolved Problems}
@@ -1050,9 +1088,9 @@ cluster by running $2$-means on it. What is its cost relative to agglomerative?
 \end{exercise}
 
 \begin{exercise}[Choosing $k$]
-Given merge heights $2,3,5,6$ (single linkage) and $2,5,9,11$ (complete
-linkage) on the same data, use the ``largest gap'' rule to recommend $k$ for
-each and comment on the difference.
+Given the single-linkage merge heights $2,3,5,6$ (Chapter~\ref{ch:single}) and
+the complete-linkage heights $2,2,4,6,10$ (Chapter~\ref{ch:complete}), use the
+``largest gap'' rule to recommend $k$ for each and comment on the difference.
 \end{exercise}
 
 %==============================================================================
