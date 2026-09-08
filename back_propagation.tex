@@ -335,7 +335,33 @@ E=\tfrac12\sum_{j}\bigl(a^{L}_{j}-y_j\bigr)^2 .
 \label{eq:mse}
 \end{equation}
 The $\tfrac12$ is a convenience: it cancels the exponent $2$ on
-differentiation. For classification one uses \emph{cross-entropy} instead.
+differentiation.
+
+For \emph{classification} the outputs are probabilities, and the natural loss is
+the \textbf{cross-entropy}, which measures the disagreement between the true
+label distribution and the predicted one.
+
+\begin{definition}[Cross-entropy loss]
+For \textbf{binary} classification with target $y\in\{0,1\}$ and predicted
+probability $\hat y=a^{L}\in(0,1)$ (a sigmoid output),
+\begin{equation}
+E=-\Bigl[\,y\log\hat y+(1-y)\log(1-\hat y)\,\Bigr].
+\label{eq:bce}
+\end{equation}
+For \textbf{multi-class} classification with $C$ classes, a one-hot target
+$\vy=(y_1,\dots,y_C)$ and softmax outputs $\hat y_c=a^{L}_{c}$
+(so $\sum_c\hat y_c=1$),
+\begin{equation}
+E=-\sum_{c=1}^{C} y_c\,\log\hat y_c .
+\label{eq:cce}
+\end{equation}
+\end{definition}
+
+Intuitively, cross-entropy is small when the predicted probability of the
+\emph{correct} class is close to $1$ and grows without bound as that probability
+approaches $0$ (a confident wrong answer is punished heavily). It also pairs
+neatly with the sigmoid/softmax: the output error simplifies to the same clean
+form $\delta^{L}=\hat{\vy}-\vy$, exactly as with the squared error.
 
 \section{Gradient Descent}
 Each parameter is nudged opposite its gradient:
