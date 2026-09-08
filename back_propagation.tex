@@ -97,7 +97,7 @@ and Worked Examples by Hand\par}
 A single \emph{artificial neuron} computes a weighted sum of its inputs, adds a
 bias, and passes the result through a nonlinear \emph{activation function}:
 \[
-a=\sigma\!\Bigl(\sum_k w_k x_k + b\Bigr).
+a=\varphi\!\Bigl(\sum_k w_k x_k + b\Bigr).
 \]
 
 \begin{figure}[ht]
@@ -107,19 +107,18 @@ a=\sigma\!\Bigl(\sum_k w_k x_k + b\Bigr).
 \node[circle,draw,fill=cin!20,minimum size=7mm] (x2) at (0,0){$x_2$};
 \node[circle,draw,fill=cin!20,minimum size=7mm] (x3) at (0,-1.5){$x_3$};
 \node[circle,draw,thick,minimum size=11mm] (sum) at (3.3,0){$\sum$};
-\node[draw,thick,minimum size=11mm] (act) at (5.8,0){$\sigma$};
-\node (out) at (8.4,0){$a=\sigma(z)$};
+\node[draw,thick,minimum size=11mm] (act) at (5.8,0){$\varphi$};
+\node (out) at (8.4,0){$a=\varphi(z)$};
 \draw[->] (x1)--(sum) node[pos=0.55,above,sloped]{\scriptsize $w_1$};
 \draw[->] (x2)--(sum) node[pos=0.5,above]{\scriptsize $w_2$};
 \draw[->] (x3)--(sum) node[pos=0.55,below,sloped]{\scriptsize $w_3$};
-\node[circle,draw,fill=gray!12,minimum size=7mm] (b0) at (0,-3){$1$};
-\draw[->] (b0)--(sum) node[pos=0.62,below,sloped]{\scriptsize $b$};
+\node[below=0.5mm of sum]{\scriptsize $+\,b$};
 \draw[->] (sum)--(act) node[midway,above]{\scriptsize $z$};
 \draw[->] (act)--(out);
 \end{tikzpicture}
 \caption{A single artificial neuron. The inputs are weighted and summed with a
 bias to form the net input $z=\sum_k w_k x_k+b$, which is passed through the
-activation $\sigma$ to give the output $a$.}
+activation $\varphi$ to give the output $a$.}
 \label{fig:neuron}
 \end{figure}
 A single neuron (the \emph{perceptron}) can only separate data with a straight
@@ -191,33 +190,30 @@ next (``fully connected''). Figure~\ref{fig:mlp} shows a $2$--$2$--$1$ network.
 \node[above=6mm of x1] {\textbf{Input}};
 \node[above=6mm of h1] {\textbf{Hidden}};
 \node[above=14mm of o] {\textbf{Output}};
-% bias units (constant 1) feeding each hidden and output neuron
-\node[neuron,fill=gray!12,minimum size=7mm] (bh) at (1.5,-3){$1$};
-\node[neuron,fill=gray!12,minimum size=7mm] (bo) at (4.5,-3){$1$};
-\draw[->,gray] (bh)--(h1) node[pos=0.5,left,font=\scriptsize,text=black]{$b_{h_1}$};
-\draw[->,gray] (bh)--(h2) node[pos=0.5,below,font=\scriptsize,text=black]{$b_{h_2}$};
-\draw[->,gray] (bo)--(o)  node[pos=0.5,right,font=\scriptsize,text=black]{$b_o$};
 \end{tikzpicture}
 \caption{A fully connected $2$--$2$--$1$ multilayer perceptron. Each edge carries
-a weight; the grey $1$ nodes are \emph{bias units} that feed a bias $b$ into
-every hidden and output neuron.}
+a weight; each hidden and output neuron also has a bias (applied inside the
+neuron, not drawn).}
 \label{fig:mlp}
 \end{figure}
 
 \section{Notation}
 We index layers by $l=1,\dots,L$ ($l=L$ is the output). For layer $l$:
 \begin{itemize}[nosep]
-  \item $w^{l}_{jk}$ --- weight from neuron $k$ in layer $l-1$ to neuron $j$ in
-        layer $l$;
-  \item $b^{l}_{j}$ --- bias of neuron $j$ in layer $l$;
+  \item $w^{l}_{jk}$ --- weight from the $k^{\text{th}}$ neuron in the
+        $(l-1)^{\text{th}}$ layer to the $j^{\text{th}}$ neuron in the
+        $l^{\text{th}}$ layer;
+  \item $b^{l}_{j}$ --- bias of the $j^{\text{th}}$ neuron in the
+        $l^{\text{th}}$ layer;
   \item $z^{l}_{j}=\sum_k w^{l}_{jk}\,a^{l-1}_{k}+b^{l}_{j}$ --- the
-        \emph{net input} (pre-activation);
-  \item $a^{l}_{j}=\sigma\!\left(z^{l}_{j}\right)$ --- the \emph{activation};
-        with $a^{0}_{k}=x_k$ (the inputs).
+        \emph{net input} (pre-activation) of the $j^{\text{th}}$ neuron in the
+        $l^{\text{th}}$ layer;
+  \item $a^{l}_{j}=\varphi\!\left(z^{l}_{j}\right)$ --- the \emph{activation} of
+        that neuron; with $a^{0}_{k}=x_k$ (the inputs).
 \end{itemize}
 In vector form, with weight matrix $\W^{l}$ and bias vector $\vb^{l}$,
 \begin{equation}
-\vz^{l}=\W^{l}\va^{l-1}+\vb^{l},\qquad \va^{l}=\sigma(\vz^{l}).
+\vz^{l}=\W^{l}\va^{l-1}+\vb^{l},\qquad \va^{l}=\varphi(\vz^{l}).
 \label{eq:forward}
 \end{equation}
 
@@ -238,7 +234,7 @@ appear throughout backpropagation.
 \renewcommand{\arraystretch}{1.6}
 \begin{tabular}{@{}lll@{}}
 \toprule
-Name & $\sigma(z)$ & $\sigma'(z)$\\
+Name & $\varphi(z)$ & $\varphi'(z)$\\
 \midrule
 Sigmoid & $\dfrac{1}{1+e^{-z}}$ & $\sigma(z)\bigl(1-\sigma(z)\bigr)$\\
 Tanh & $\dfrac{e^{z}-e^{-z}}{e^{z}+e^{-z}}$ & $1-\tanh^2(z)$\\
@@ -406,17 +402,17 @@ its tail).} It remains to compute the $\delta$'s.
 
 \section{Error Signal at the Output Layer}
 For an output neuron $j$ (layer $L$), the loss depends on $z^{L}_{j}$ only
-through its own activation $a^{L}_{j}=\sigma(z^{L}_{j})$:
+through its own activation $a^{L}_{j}=\varphi(z^{L}_{j})$:
 \begin{equation}
 \delta^{L}_{j}=\pd{E}{z^{L}_{j}}
 =\pd{E}{a^{L}_{j}}\,\pd{a^{L}_{j}}{z^{L}_{j}}
-=\pd{E}{a^{L}_{j}}\,\sigma'(z^{L}_{j}).
+=\pd{E}{a^{L}_{j}}\,\varphi'(z^{L}_{j}).
 \label{eq:deltaL}
 \end{equation}
 For the MSE loss \eqref{eq:mse}, $\partial E/\partial a^{L}_{j}=a^{L}_{j}-y_j$,
 so
 \begin{equation}
-\boxed{\ \delta^{L}_{j}=\bigl(a^{L}_{j}-y_j\bigr)\,\sigma'(z^{L}_{j})\ }
+\boxed{\ \delta^{L}_{j}=\bigl(a^{L}_{j}-y_j\bigr)\,\varphi'(z^{L}_{j})\ }
 \label{eq:deltaLmse}
 \end{equation}
 
@@ -429,13 +425,13 @@ $i$ of the next layer $l+1$ that it feeds. By the multivariate chain rule,
 =\sum_{i}\delta^{l+1}_{i}\,\pd{z^{l+1}_{i}}{z^{l}_{j}}.
 \label{eq:hid1}
 \end{equation}
-Now $z^{l+1}_{i}=\sum_{j}w^{l+1}_{ij}\,\sigma(z^{l}_{j})+b^{l+1}_{i}$, so
+Now $z^{l+1}_{i}=\sum_{j}w^{l+1}_{ij}\,\varphi(z^{l}_{j})+b^{l+1}_{i}$, so
 \[
-\pd{z^{l+1}_{i}}{z^{l}_{j}}=w^{l+1}_{ij}\,\sigma'(z^{l}_{j}).
+\pd{z^{l+1}_{i}}{z^{l}_{j}}=w^{l+1}_{ij}\,\varphi'(z^{l}_{j}).
 \]
 Substituting,
 \begin{equation}
-\boxed{\ \delta^{l}_{j}=\Bigl(\sum_{i}w^{l+1}_{ij}\,\delta^{l+1}_{i}\Bigr)\,\sigma'(z^{l}_{j})\ }
+\boxed{\ \delta^{l}_{j}=\Bigl(\sum_{i}w^{l+1}_{ij}\,\delta^{l+1}_{i}\Bigr)\,\varphi'(z^{l}_{j})\ }
 \label{eq:hid2}
 \end{equation}
 This is the heart of backpropagation: \textbf{the error signal of a neuron is the
@@ -461,16 +457,16 @@ used in the forward pass.
 \caption{Backward propagation of error signals. The output error $\delta_o$ is
 sent back through the \emph{same} weights $w_5,w_6$ and scaled by each hidden
 neuron's activation derivative to give
-$\delta_{h_1}=w_5\delta_o\,\sigma'(z_{h_1})$ and
-$\delta_{h_2}=w_6\delta_o\,\sigma'(z_{h_2})$---equation \eqref{eq:hid2}.}
+$\delta_{h_1}=w_5\delta_o\,\varphi'(z_{h_1})$ and
+$\delta_{h_2}=w_6\delta_o\,\varphi'(z_{h_2})$---equation \eqref{eq:hid2}.}
 \label{fig:backflow}
 \end{figure}
 
 \section{Vector Form}
 Collecting neurons into vectors (with $\odot$ the element-wise product),
 \begin{equation}
-\vd^{L}=\nabla_{\va}E\odot\sigma'(\vz^{L}),\qquad
-\vd^{l}=\bigl((\W^{l+1})^{\!\top}\vd^{l+1}\bigr)\odot\sigma'(\vz^{l}),
+\vd^{L}=\nabla_{\va}E\odot\varphi'(\vz^{L}),\qquad
+\vd^{l}=\bigl((\W^{l+1})^{\!\top}\vd^{l+1}\bigr)\odot\varphi'(\vz^{l}),
 \label{eq:vecdelta}
 \end{equation}
 \begin{equation}
@@ -490,11 +486,11 @@ back through the weights.''
 \textbf{Backpropagation (one training example)}
 \begin{enumerate}[nosep,leftmargin=2.4em]
   \item \textbf{Forward pass.} Set $\va^{0}=\vx$; for $l=1,\dots,L$ compute
-        $\vz^{l}=\W^{l}\va^{l-1}+\vb^{l}$ and $\va^{l}=\sigma(\vz^{l})$; store
+        $\vz^{l}=\W^{l}\va^{l-1}+\vb^{l}$ and $\va^{l}=\varphi(\vz^{l})$; store
         all $\vz^{l},\va^{l}$.
-  \item \textbf{Output error.} $\vd^{L}=(\va^{L}-\vy)\odot\sigma'(\vz^{L})$.
+  \item \textbf{Output error.} $\vd^{L}=(\va^{L}-\vy)\odot\varphi'(\vz^{L})$.
   \item \textbf{Backward pass.} For $l=L-1,\dots,1$:
-        $\vd^{l}=\bigl((\W^{l+1})^{\!\top}\vd^{l+1}\bigr)\odot\sigma'(\vz^{l})$.
+        $\vd^{l}=\bigl((\W^{l+1})^{\!\top}\vd^{l+1}\bigr)\odot\varphi'(\vz^{l})$.
   \item \textbf{Gradients.} $\nabla_{\W^{l}}E=\vd^{l}(\va^{l-1})^{\!\top}$,\;
         $\nabla_{\vb^{l}}E=\vd^{l}$.
   \item \textbf{Update.} $\W^{l}\leftarrow\W^{l}-\eta\,\nabla_{\W^{l}}E$,\;
@@ -548,7 +544,7 @@ Inputs & $x_1=0.05,\ x_2=0.10$ & Target $t=0.01$\\
 Hidden weights & $w_1=0.15,\ w_2=0.20$ (to $h_1$) & $w_3=0.25,\ w_4=0.30$ (to $h_2$)\\
 Hidden biases & $b_{h_1}=b_{h_2}=0.35$ &\\
 Output weights & $w_5=0.40,\ w_6=0.45$ & Output bias $b_o=0.60$\\
-Activation & sigmoid & Loss $E=\tfrac12(o-t)^2$,\ \ $\eta=0.5$\\
+Activation & sigmoid ($\varphi=\sigma$) & Loss $E=\tfrac12(o-t)^2$,\ \ $\eta=0.5$\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -736,13 +732,13 @@ then $|\delta^{l}|$ shrinks by at least a factor $4$ per layer going backward.
 Symbol & Meaning\\
 \midrule
 $L$ & number of layers (output is layer $L$)\\
-$w^{l}_{jk}$ & weight from neuron $k$ (layer $l-1$) to neuron $j$ (layer $l$)\\
-$b^{l}_{j}$ & bias of neuron $j$ in layer $l$\\
-$z^{l}_{j}$ & net input (pre-activation) of neuron $j$ in layer $l$\\
-$a^{l}_{j}$ & activation $\sigma(z^{l}_{j})$; $a^{0}=x$ (inputs)\\
-$\sigma,\sigma'$ & activation function and its derivative\\
+$w^{l}_{jk}$ & weight: $k^{\text{th}}$ neuron (layer $l-1$) to $j^{\text{th}}$ neuron (layer $l$)\\
+$b^{l}_{j}$ & bias of the $j^{\text{th}}$ neuron in the $l^{\text{th}}$ layer\\
+$z^{l}_{j}$ & net input of the $j^{\text{th}}$ neuron in the $l^{\text{th}}$ layer\\
+$a^{l}_{j}$ & activation $\varphi(z^{l}_{j})$; $a^{0}=x$ (inputs)\\
+$\varphi,\varphi'$ & activation function and its derivative\\
 $E$ & loss (error)\\
-$\delta^{l}_{j}=\partial E/\partial z^{l}_{j}$ & error signal of neuron $j$ in layer $l$\\
+$\delta^{l}_{j}=\partial E/\partial z^{l}_{j}$ & error signal of the $j^{\text{th}}$ neuron in the $l^{\text{th}}$ layer\\
 $\eta$ & learning rate (a hyperparameter)\\
 $\odot$ & element-wise (Hadamard) product\\
 \bottomrule
