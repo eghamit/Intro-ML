@@ -99,6 +99,28 @@ bias, and passes the result through a nonlinear \emph{activation function}:
 \[
 a=\sigma\!\Bigl(\sum_k w_k x_k + b\Bigr).
 \]
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[>=Latex,every node/.style={font=\small}]
+\node[circle,draw,fill=cin!20,minimum size=7mm] (x1) at (0,1.5){$x_1$};
+\node[circle,draw,fill=cin!20,minimum size=7mm] (x2) at (0,0){$x_2$};
+\node[circle,draw,fill=cin!20,minimum size=7mm] (x3) at (0,-1.5){$x_3$};
+\node[circle,draw,thick,minimum size=11mm] (sum) at (3.3,0){$\sum$};
+\node[draw,thick,minimum size=11mm] (act) at (5.8,0){$\sigma$};
+\node (out) at (8.4,0){$a=\sigma(z)$};
+\draw[->] (x1)--(sum) node[pos=0.55,above,sloped]{\scriptsize $w_1$};
+\draw[->] (x2)--(sum) node[pos=0.5,above]{\scriptsize $w_2$};
+\draw[->] (x3)--(sum) node[pos=0.55,below,sloped]{\scriptsize $w_3$};
+\node[below=0.5mm of sum]{\scriptsize $+\,b$};
+\draw[->] (sum)--(act) node[midway,above]{\scriptsize $z$};
+\draw[->] (act)--(out);
+\end{tikzpicture}
+\caption{A single artificial neuron. The inputs are weighted and summed with a
+bias to form the net input $z=\sum_k w_k x_k+b$, which is passed through the
+activation $\sigma$ to give the output $a$.}
+\label{fig:neuron}
+\end{figure}
 A single neuron (the \emph{perceptron}) can only separate data with a straight
 line, so it cannot solve even the XOR problem. Stacking neurons into
 \emph{layers}---a \textbf{multilayer perceptron} (MLP)---and using nonlinear
@@ -218,6 +240,24 @@ Leaky ReLU & $\max(\alpha z,z)$ & $1$ if $z>0$, else $\alpha$\\
 \end{tabular}
 \end{center}
 
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.72\textwidth,height=6cm,axis lines=middle,
+  xlabel={$z$},xmin=-6,xmax=6,ymin=-1.4,ymax=2.1,
+  legend pos=north west,legend cell align=left,
+  grid=both,major grid style={gray!20},samples=101]
+\addplot[thick,cin,domain=-6:6]{1/(1+exp(-x))};   \addlegendentry{sigmoid}
+\addplot[thick,chid,domain=-6:6]{tanh(x)};         \addlegendentry{tanh}
+\addplot[thick,cout,domain=-6:2]{max(0,x)};        \addlegendentry{ReLU}
+\end{axis}
+\end{tikzpicture}
+\caption{The three most common activation functions. Sigmoid squashes to
+$(0,1)$, tanh to $(-1,1)$, and ReLU passes positive values unchanged.}
+\label{fig:acts}
+\end{figure}
+
 \begin{definition}[Sigmoid derivative]
 The sigmoid's derivative has the convenient self-referential form
 \begin{equation}
@@ -228,6 +268,25 @@ The sigmoid's derivative has the convenient self-referential form
 So once $a=\sigma(z)$ is known from the forward pass, $\sigma'(z)=a(1-a)$ needs
 no re-evaluation---one reason sigmoids are handy for hand computation.
 \end{definition}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.72\textwidth,height=5.5cm,axis lines=middle,
+  xlabel={$z$},xmin=-6,xmax=6,ymin=0,ymax=1.1,
+  legend pos=north west,legend cell align=left,
+  grid=both,major grid style={gray!20},samples=101]
+\addplot[thick,cin,domain=-6:6]{1/(1+exp(-x))};
+\addlegendentry{$\sigma(z)$}
+\addplot[thick,cout,dashed,domain=-6:6]{(1/(1+exp(-x)))*(1-1/(1+exp(-x)))};
+\addlegendentry{$\sigma'(z)$}
+\end{axis}
+\end{tikzpicture}
+\caption{The sigmoid and its derivative $\sigma'(z)=\sigma(z)\bigl(1-\sigma(z)\bigr)$.
+The derivative peaks at only $0.25$ (at $z=0$) and is almost zero for large
+$|z|$---the root of the vanishing-gradient problem.}
+\label{fig:sigder}
+\end{figure}
 
 \begin{remark}[Vanishing gradients]
 For large $|z|$, $\sigma'(z)\approx0$. In deep sigmoid/tanh networks the product
@@ -256,6 +315,29 @@ w^{l}_{jk}\leftarrow w^{l}_{jk}-\eta\,\pd{E}{w^{l}_{jk}},\qquad
 b^{l}_{j}\leftarrow b^{l}_{j}-\eta\,\pd{E}{b^{l}_{j}},
 \label{eq:gd}
 \end{equation}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.72\textwidth,height=5.6cm,axis lines=middle,
+  xlabel={weight $w$},ylabel={loss $E(w)$},
+  xmin=-2.4,xmax=2.4,ymin=-0.3,ymax=4.4,xtick=\empty,ytick=\empty,samples=101]
+\addplot[thick,chid,domain=-2.3:2.3]{0.8*x^2+0.2};
+\addplot[only marks,mark=*,cout,mark size=2pt]
+  coordinates {(2,3.4)(1.2,1.352)(0.6,0.488)(0.2,0.232)(0,0.2)};
+\draw[->,thick,cout] (axis cs:2,3.4)  -- (axis cs:1.2,1.352);
+\draw[->,thick,cout] (axis cs:1.2,1.352)--(axis cs:0.6,0.488);
+\draw[->,thick,cout] (axis cs:0.6,0.488)--(axis cs:0.2,0.232);
+\node[font=\scriptsize,anchor=west] at (axis cs:1.35,2.6)
+  {$w\leftarrow w-\eta\,\dfrac{\partial E}{\partial w}$};
+\node[font=\scriptsize,anchor=north] at (axis cs:0,0.2) {minimum};
+\end{axis}
+\end{tikzpicture}
+\caption{Gradient descent on a (convex) slice of the loss. Each step moves the
+weight downhill, opposite the gradient and scaled by the learning rate $\eta$,
+toward the minimum.}
+\label{fig:gd}
+\end{figure}
 where $\eta>0$ is the learning rate. Everything hinges on the partial
 derivatives $\partial E/\partial w$---which backpropagation supplies.
 
@@ -327,6 +409,29 @@ This is the heart of backpropagation: \textbf{the error signal of a neuron is th
 weighted sum of the error signals it feeds, scaled by its own activation
 derivative.} Errors literally \emph{propagate backward} through the same weights
 used in the forward pass.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[>=Latex,neuron/.style={circle,draw,minimum size=9mm,thick},
+  every node/.style={font=\small}]
+\node[neuron,fill=chid!18] (h1) at (0,1.3){$h_1$};
+\node[neuron,fill=chid!18] (h2) at (0,-1.3){$h_2$};
+\node[neuron,fill=cout!22] (o)  at (3.6,0){$o$};
+\draw[->,thick,cout] (o)--(h1) node[pos=0.5,above,sloped]{\scriptsize $w_5$};
+\draw[->,thick,cout] (o)--(h2) node[pos=0.5,below,sloped]{\scriptsize $w_6$};
+\node[right=1.5mm of o]  {\scriptsize $\delta_o$};
+\node[left=1.5mm of h1]  {\scriptsize $\delta_{h_1}$};
+\node[left=1.5mm of h2]  {\scriptsize $\delta_{h_2}$};
+\node[below=9mm of o,font=\small,align=center]
+  {backward error flow};
+\end{tikzpicture}
+\caption{Backward propagation of error signals. The output error $\delta_o$ is
+sent back through the \emph{same} weights $w_5,w_6$ and scaled by each hidden
+neuron's activation derivative to give
+$\delta_{h_1}=w_5\delta_o\,\sigma'(z_{h_1})$ and
+$\delta_{h_2}=w_6\delta_o\,\sigma'(z_{h_2})$---equation \eqref{eq:hid2}.}
+\label{fig:backflow}
+\end{figure}
 
 \section{Vector Form}
 Collecting neurons into vectors (with $\odot$ the element-wise product),
