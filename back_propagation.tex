@@ -1,0 +1,614 @@
+%==============================================================================
+%  Backpropagation:
+%  Background, Theory, Chain-Rule Derivation and Worked Examples
+%
+%  Self-contained lecture notes for an introductory Machine Learning course
+%  (B.Tech / M.Tech level).  Prerequisites: partial derivatives, the chain rule,
+%  basic linear algebra.
+%
+%  Compile with:  pdflatex back_propagation.tex   (run twice for refs)
+%  Requires a full TeX distribution (TeX Live / MiKTeX) with tikz + pgfplots.
+%==============================================================================
+\documentclass[11pt,a4paper]{report}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows.meta,calc,positioning}
+\usepackage{listings}
+\usepackage[colorlinks=true,linkcolor=blue!55!black,citecolor=blue!55!black,
+            urlcolor=blue!55!black,linktocpage=true]{hyperref}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{example}{Example}[chapter]
+\newtheorem{exercise}{Exercise}[chapter]
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\vy}{\mathbf{y}}
+\newcommand{\vb}{\mathbf{b}}
+\newcommand{\vz}{\mathbf{z}}
+\newcommand{\va}{\mathbf{a}}
+\newcommand{\vd}{\bm{\delta}}
+\newcommand{\W}{\mathbf{W}}
+\newcommand{\pd}[2]{\frac{\partial #1}{\partial #2}}
+\DeclareMathOperator{\sig}{\sigma}
+
+\definecolor{codegreen}{rgb}{0.0,0.5,0.0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codeblue}{rgb}{0.1,0.1,0.6}
+\definecolor{backcol}{rgb}{0.97,0.97,0.95}
+\definecolor{cin}{HTML}{2A9D8F}
+\definecolor{chid}{HTML}{264653}
+\definecolor{cout}{HTML}{E76F51}
+\lstdefinestyle{python}{
+  backgroundcolor=\color{backcol},language=Python,
+  commentstyle=\color{codegreen},keywordstyle=\color{codeblue}\bfseries,
+  numberstyle=\tiny\color{codegray},stringstyle=\color{codegreen},
+  basicstyle=\ttfamily\footnotesize,breaklines=true,captionpos=b,
+  numbers=left,numbersep=6pt,showstringspaces=false,frame=single,
+  rulecolor=\color{codegray},tabsize=2}
+
+%==============================================================================
+\begin{document}
+
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\Huge\bfseries Backpropagation\par}
+\vspace{0.6cm}
+{\Large Background, Theory, the Chain-Rule Derivation\\[2pt]
+and Worked Examples by Hand\par}
+\vspace{1.5cm}
+{\large A Self-Contained Set of Lecture Notes\par}
+\vspace{0.4cm}
+{\large Introduction to Machine Learning\par}
+\vspace{2.5cm}
+\begin{tabular}{c}
+\hline\\[-6pt]
+\textbf{Prerequisites:} Partial Derivatives, the Chain Rule, Linear Algebra\\[4pt]
+\textbf{Level:} B.Tech / M.Tech\\[4pt]
+\hline
+\end{tabular}
+\vfill
+{\large \today\par}
+\end{titlepage}
+
+\tableofcontents
+\clearpage
+
+%==============================================================================
+\chapter{Background: Neural Networks in Machine Learning}
+%==============================================================================
+
+\section{From the Perceptron to the Multilayer Network}
+A single \emph{artificial neuron} computes a weighted sum of its inputs, adds a
+bias, and passes the result through a nonlinear \emph{activation function}:
+\[
+a=\sigma\!\Bigl(\sum_k w_k x_k + b\Bigr).
+\]
+A single neuron (the \emph{perceptron}) can only separate data with a straight
+line, so it cannot solve even the XOR problem. Stacking neurons into
+\emph{layers}---a \textbf{multilayer perceptron} (MLP)---and using nonlinear
+activations lets the network represent arbitrarily complex functions. The
+question then becomes: \emph{how do we choose the weights?}
+
+\section{Learning as Optimization}
+Neural-network training is \textbf{supervised}: we have inputs with known
+targets $\{(\vx^{(i)},\vy^{(i)})\}$ and a \emph{loss} $E$ measuring how wrong
+the network's outputs are. Learning means adjusting every weight and bias to
+make $E$ small, by \emph{gradient descent}:
+\[
+w \leftarrow w-\eta\,\pd{E}{w}.
+\]
+This needs the gradient of the loss with respect to \emph{every} weight---
+possibly millions of them, buried several layers deep.
+\textbf{Backpropagation} is the efficient algorithm that computes all of these
+partial derivatives in a single backward sweep, using the \emph{chain rule}.
+
+\begin{remark}[Parameters vs.\ hyperparameters]
+The quantities backpropagation \emph{updates} are the \textbf{parameters}: the
+weights $w$ and biases $b$. Quantities the user \emph{fixes} beforehand---the
+learning rate $\eta$, the number of layers, the number of neurons, the choice
+of activation---are the \textbf{hyperparameters}. Backpropagation computes the
+gradients; gradient descent uses them (and $\eta$) to move the parameters.
+\end{remark}
+
+\section{Why Backpropagation Matters}
+Computing each derivative independently (e.g.\ by finite differences) would cost
+one forward pass \emph{per weight}---hopelessly slow. Backpropagation reuses
+intermediate results so that \emph{all} gradients cost about the same as
+\emph{one} extra forward pass. It is the workhorse behind essentially all modern
+deep learning.
+
+%==============================================================================
+\chapter{The Multilayer Perceptron}
+\label{ch:mlp}
+%==============================================================================
+
+\section{Architecture}
+An MLP has an \emph{input layer}, one or more \emph{hidden layers}, and an
+\emph{output layer}; every neuron in one layer connects to every neuron in the
+next (``fully connected''). Figure~\ref{fig:mlp} shows a $2$--$2$--$1$ network.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  >=Latex, shorten >=1pt, node distance=16mm and 26mm,
+  neuron/.style={circle,draw,minimum size=9mm,thick},
+  every node/.style={font=\small}]
+% layers
+\node[neuron,fill=cin!20]  (x1) at (0,1.2) {$x_1$};
+\node[neuron,fill=cin!20]  (x2) at (0,-1.2){$x_2$};
+\node[neuron,fill=chid!18] (h1) at (3,1.2) {$h_1$};
+\node[neuron,fill=chid!18] (h2) at (3,-1.2){$h_2$};
+\node[neuron,fill=cout!22] (o)  at (6,0)   {$o$};
+% edges input->hidden
+\foreach \i in {1,2}\foreach \j in {1,2} \draw[->] (x\i)--(h\j);
+% edges hidden->output
+\foreach \j in {1,2} \draw[->] (h\j)--(o);
+% weight labels (selected)
+\node[cin!60!black]  at ($(x1)!0.5!(h1)+(0,0.28)$) {\scriptsize $w_1$};
+\node[cin!60!black]  at ($(x2)!0.5!(h1)+(-0.1,-0.28)$){\scriptsize $w_2$};
+\node[cout!70!black] at ($(h1)!0.5!(o)+(0,0.30)$) {\scriptsize $w_5$};
+\node[cout!70!black] at ($(h2)!0.5!(o)+(0,-0.30)$){\scriptsize $w_6$};
+% layer captions
+\node[above=6mm of x1] {\textbf{Input}};
+\node[above=6mm of h1] {\textbf{Hidden}};
+\node[above=14mm of o] {\textbf{Output}};
+\end{tikzpicture}
+\caption{A fully connected $2$--$2$--$1$ multilayer perceptron. Each edge carries
+a weight; each hidden and output neuron also has a bias (not drawn).}
+\label{fig:mlp}
+\end{figure}
+
+\section{Notation}
+We index layers by $l=1,\dots,L$ ($l=L$ is the output). For layer $l$:
+\begin{itemize}[nosep]
+  \item $w^{l}_{jk}$ --- weight from neuron $k$ in layer $l-1$ to neuron $j$ in
+        layer $l$;
+  \item $b^{l}_{j}$ --- bias of neuron $j$ in layer $l$;
+  \item $z^{l}_{j}=\sum_k w^{l}_{jk}\,a^{l-1}_{k}+b^{l}_{j}$ --- the
+        \emph{net input} (pre-activation);
+  \item $a^{l}_{j}=\sigma\!\left(z^{l}_{j}\right)$ --- the \emph{activation};
+        with $a^{0}_{k}=x_k$ (the inputs).
+\end{itemize}
+In vector form, with weight matrix $\W^{l}$ and bias vector $\vb^{l}$,
+\begin{equation}
+\vz^{l}=\W^{l}\va^{l-1}+\vb^{l},\qquad \va^{l}=\sigma(\vz^{l}).
+\label{eq:forward}
+\end{equation}
+
+\section{Forward Propagation}
+\emph{Forward propagation} evaluates the network layer by layer using
+\eqref{eq:forward}: start with $\va^{0}=\vx$, compute $\vz^{1},\va^{1}$, then
+$\vz^{2},\va^{2}$, and so on to the output $\va^{L}$. This produces the
+prediction and---crucially---stores every $z^l_j$ and $a^l_j$, which
+backpropagation will reuse.
+
+%==============================================================================
+\chapter{Activation Functions}
+%==============================================================================
+
+Nonlinear activations are what give an MLP its power; their \emph{derivatives}
+appear throughout backpropagation.
+\begin{center}
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Name & $\sigma(z)$ & $\sigma'(z)$\\
+\midrule
+Sigmoid & $\dfrac{1}{1+e^{-z}}$ & $\sigma(z)\bigl(1-\sigma(z)\bigr)$\\
+Tanh & $\dfrac{e^{z}-e^{-z}}{e^{z}+e^{-z}}$ & $1-\tanh^2(z)$\\
+ReLU & $\max(0,z)$ & $\begin{cases}1 & z>0\\0 & z<0\end{cases}$\\
+Leaky ReLU & $\max(\alpha z,z)$ & $1$ if $z>0$, else $\alpha$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{definition}[Sigmoid derivative]
+The sigmoid's derivative has the convenient self-referential form
+\begin{equation}
+\sigma(z)=\frac{1}{1+e^{-z}}\ \Longrightarrow\
+\sigma'(z)=\sigma(z)\bigl(1-\sigma(z)\bigr).
+\label{eq:sigder}
+\end{equation}
+So once $a=\sigma(z)$ is known from the forward pass, $\sigma'(z)=a(1-a)$ needs
+no re-evaluation---one reason sigmoids are handy for hand computation.
+\end{definition}
+
+\begin{remark}[Vanishing gradients]
+For large $|z|$, $\sigma'(z)\approx0$. In deep sigmoid/tanh networks the product
+of many small derivatives makes early-layer gradients vanish---which is why ReLU
+(derivative $1$ on the positive side) is preferred in deep models.
+\end{remark}
+
+%==============================================================================
+\chapter{Loss Function and Gradient Descent}
+%==============================================================================
+
+\section{Loss Functions}
+For regression, the \emph{mean squared error}; for a single example with output
+vector $\va^{L}$ and target $\vy$,
+\begin{equation}
+E=\tfrac12\sum_{j}\bigl(a^{L}_{j}-y_j\bigr)^2 .
+\label{eq:mse}
+\end{equation}
+The $\tfrac12$ is a convenience: it cancels the exponent $2$ on
+differentiation. For classification one uses \emph{cross-entropy} instead.
+
+\section{Gradient Descent}
+Each parameter is nudged opposite its gradient:
+\begin{equation}
+w^{l}_{jk}\leftarrow w^{l}_{jk}-\eta\,\pd{E}{w^{l}_{jk}},\qquad
+b^{l}_{j}\leftarrow b^{l}_{j}-\eta\,\pd{E}{b^{l}_{j}},
+\label{eq:gd}
+\end{equation}
+where $\eta>0$ is the learning rate. Everything hinges on the partial
+derivatives $\partial E/\partial w$---which backpropagation supplies.
+
+%==============================================================================
+\chapter{Backpropagation: The Chain-Rule Derivation}
+\label{ch:deriv}
+%==============================================================================
+
+The loss depends on a weight only \emph{through} that neuron's net input, which
+feeds its activation, which feeds the next layer, and so on. The chain rule
+threads the derivative back along this path. The key trick is to define, for
+each neuron, the \emph{error signal}
+\begin{equation}
+\boxed{\ \delta^{l}_{j}\;\coloneqq\;\pd{E}{z^{l}_{j}}\ }
+\label{eq:delta}
+\end{equation}
+the sensitivity of the loss to that neuron's net input. Once we have every
+$\delta^l_j$, the weight gradients follow immediately.
+
+\section{Gradient of a Weight in Terms of $\delta$}
+Because $z^{l}_{j}=\sum_k w^{l}_{jk}a^{l-1}_{k}+b^{l}_{j}$ depends on
+$w^{l}_{jk}$ directly, the chain rule gives
+\begin{equation}
+\pd{E}{w^{l}_{jk}}
+=\pd{E}{z^{l}_{j}}\,\pd{z^{l}_{j}}{w^{l}_{jk}}
+=\delta^{l}_{j}\,a^{l-1}_{k},
+\qquad
+\pd{E}{b^{l}_{j}}=\delta^{l}_{j}\,\pd{z^{l}_{j}}{b^{l}_{j}}=\delta^{l}_{j}.
+\label{eq:gradw}
+\end{equation}
+\emph{Every weight gradient is (error signal at its head) $\times$ (activation at
+its tail).} It remains to compute the $\delta$'s.
+
+\section{Error Signal at the Output Layer}
+For an output neuron $j$ (layer $L$), the loss depends on $z^{L}_{j}$ only
+through its own activation $a^{L}_{j}=\sigma(z^{L}_{j})$:
+\begin{equation}
+\delta^{L}_{j}=\pd{E}{z^{L}_{j}}
+=\pd{E}{a^{L}_{j}}\,\pd{a^{L}_{j}}{z^{L}_{j}}
+=\pd{E}{a^{L}_{j}}\,\sigma'(z^{L}_{j}).
+\label{eq:deltaL}
+\end{equation}
+For the MSE loss \eqref{eq:mse}, $\partial E/\partial a^{L}_{j}=a^{L}_{j}-y_j$,
+so
+\begin{equation}
+\boxed{\ \delta^{L}_{j}=\bigl(a^{L}_{j}-y_j\bigr)\,\sigma'(z^{L}_{j})\ }
+\label{eq:deltaLmse}
+\end{equation}
+
+\section{Error Signal at a Hidden Layer (the Backward Recursion)}
+A hidden neuron $j$ in layer $l$ influences the loss through \emph{all} neurons
+$i$ of the next layer $l+1$ that it feeds. By the multivariate chain rule,
+\begin{equation}
+\delta^{l}_{j}=\pd{E}{z^{l}_{j}}
+=\sum_{i}\pd{E}{z^{l+1}_{i}}\,\pd{z^{l+1}_{i}}{z^{l}_{j}}
+=\sum_{i}\delta^{l+1}_{i}\,\pd{z^{l+1}_{i}}{z^{l}_{j}}.
+\label{eq:hid1}
+\end{equation}
+Now $z^{l+1}_{i}=\sum_{j}w^{l+1}_{ij}\,\sigma(z^{l}_{j})+b^{l+1}_{i}$, so
+\[
+\pd{z^{l+1}_{i}}{z^{l}_{j}}=w^{l+1}_{ij}\,\sigma'(z^{l}_{j}).
+\]
+Substituting,
+\begin{equation}
+\boxed{\ \delta^{l}_{j}=\Bigl(\sum_{i}w^{l+1}_{ij}\,\delta^{l+1}_{i}\Bigr)\,\sigma'(z^{l}_{j})\ }
+\label{eq:hid2}
+\end{equation}
+This is the heart of backpropagation: \textbf{the error signal of a neuron is the
+weighted sum of the error signals it feeds, scaled by its own activation
+derivative.} Errors literally \emph{propagate backward} through the same weights
+used in the forward pass.
+
+\section{Vector Form}
+Collecting neurons into vectors (with $\odot$ the element-wise product),
+\begin{equation}
+\vd^{L}=\nabla_{\va}E\odot\sigma'(\vz^{L}),\qquad
+\vd^{l}=\bigl((\W^{l+1})^{\!\top}\vd^{l+1}\bigr)\odot\sigma'(\vz^{l}),
+\label{eq:vecdelta}
+\end{equation}
+\begin{equation}
+\nabla_{\W^{l}}E=\vd^{l}\,(\va^{l-1})^{\!\top},\qquad
+\nabla_{\vb^{l}}E=\vd^{l}.
+\label{eq:vecgrad}
+\end{equation}
+The transpose $(\W^{l+1})^{\!\top}$ makes precise the phrase ``send the error
+back through the weights.''
+
+%==============================================================================
+\chapter{The Backpropagation Algorithm}
+%==============================================================================
+
+\begin{center}
+\fbox{\parbox{0.92\textwidth}{
+\textbf{Backpropagation (one training example)}
+\begin{enumerate}[nosep,leftmargin=2.4em]
+  \item \textbf{Forward pass.} Set $\va^{0}=\vx$; for $l=1,\dots,L$ compute
+        $\vz^{l}=\W^{l}\va^{l-1}+\vb^{l}$ and $\va^{l}=\sigma(\vz^{l})$; store
+        all $\vz^{l},\va^{l}$.
+  \item \textbf{Output error.} $\vd^{L}=(\va^{L}-\vy)\odot\sigma'(\vz^{L})$.
+  \item \textbf{Backward pass.} For $l=L-1,\dots,1$:
+        $\vd^{l}=\bigl((\W^{l+1})^{\!\top}\vd^{l+1}\bigr)\odot\sigma'(\vz^{l})$.
+  \item \textbf{Gradients.} $\nabla_{\W^{l}}E=\vd^{l}(\va^{l-1})^{\!\top}$,\;
+        $\nabla_{\vb^{l}}E=\vd^{l}$.
+  \item \textbf{Update.} $\W^{l}\leftarrow\W^{l}-\eta\,\nabla_{\W^{l}}E$,\;
+        $\vb^{l}\leftarrow\vb^{l}-\eta\,\nabla_{\vb^{l}}E$.
+\end{enumerate}
+}}
+\end{center}
+Steps 1--5 are repeated over the training data until the loss converges.
+
+%==============================================================================
+\chapter{Types and Variants}
+%==============================================================================
+
+\section{How Much Data per Update?}
+\begin{center}
+\begin{tabular}{@{}p{4.1cm}p{9.0cm}@{}}
+\toprule
+\textbf{Batch GD} & Average the gradient over the \emph{whole} training set
+before each update. Stable but slow per step.\\
+\textbf{Stochastic GD (SGD)} & Update after \emph{each} example. Noisy but fast;
+the noise can help escape poor minima.\\
+\textbf{Mini-batch GD} & Update after a small batch (e.g.\ 32--256). The
+practical default---balances speed and stability.\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Better Update Rules (Optimizers)}
+Plain gradient descent \eqref{eq:gd} can be slow or unstable. Common
+improvements reuse the same backprop gradients but change how they are applied:
+\begin{itemize}[nosep]
+  \item \textbf{Momentum} --- accumulate a velocity to smooth and accelerate.
+  \item \textbf{RMSProp} --- scale each weight's step by a running average of its
+        squared gradient.
+  \item \textbf{Adam} --- combines momentum and RMSProp; the usual default.
+\end{itemize}
+Backpropagation is unchanged; only the update step differs.
+
+%==============================================================================
+\chapter{Worked Example by Hand}
+\label{ch:worked}
+%==============================================================================
+
+We train the $2$--$2$--$1$ sigmoid network of Figure~\ref{fig:mlp} for one step.
+
+\section{Setup}
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Inputs & $x_1=0.05,\ x_2=0.10$ & Target $t=0.01$\\
+Hidden weights & $w_1=0.15,\ w_2=0.20$ (to $h_1$) & $w_3=0.25,\ w_4=0.30$ (to $h_2$)\\
+Hidden biases & $b_{h_1}=b_{h_2}=0.35$ &\\
+Output weights & $w_5=0.40,\ w_6=0.45$ & Output bias $b_o=0.60$\\
+Activation & sigmoid & Loss $E=\tfrac12(o-t)^2$,\ \ $\eta=0.5$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Here $w_1,w_2$ feed $h_1$; $w_3,w_4$ feed $h_2$; $w_5,w_6$ feed $o$.
+
+\section{Step 1 --- Forward Pass}
+\begin{align*}
+z_{h_1}&=w_1x_1+w_2x_2+b_{h_1}=0.15(0.05)+0.20(0.10)+0.35=0.3775,\\
+h_1&=\sigma(0.3775)=0.593270,\\
+z_{h_2}&=w_3x_1+w_4x_2+b_{h_2}=0.25(0.05)+0.30(0.10)+0.35=0.3925,\\
+h_2&=\sigma(0.3925)=0.596884,\\
+z_{o}&=w_5h_1+w_6h_2+b_o=0.40(0.593270)+0.45(0.596884)+0.60=1.105906,\\
+o&=\sigma(1.105906)=0.751365,\qquad
+E=\tfrac12(0.751365-0.01)^2=0.274811.
+\end{align*}
+
+\section{Step 2 --- Output Error and its Gradients}
+Using \eqref{eq:deltaLmse} with $\sigma'(z_o)=o(1-o)$:
+\[
+\delta_o=(o-t)\,o(1-o)=(0.751365-0.01)(0.751365)(0.248635)=0.138499.
+\]
+Then by \eqref{eq:gradw}, $\partial E/\partial w_5=\delta_o h_1$, etc.:
+\[
+\pd{E}{w_5}=0.138499(0.593270)=0.082167,\quad
+\pd{E}{w_6}=0.138499(0.596884)=0.082668,\quad
+\pd{E}{b_o}=\delta_o=0.138499.
+\]
+
+\section{Step 3 --- Hidden Errors and their Gradients}
+By the backward recursion \eqref{eq:hid2}, with only one output neuron,
+$\delta_{h}=\delta_o\,w_{(h\to o)}\,h(1-h)$:
+\begin{align*}
+\delta_{h_1}&=\delta_o\,w_5\,h_1(1-h_1)=0.138499(0.40)(0.593270)(0.406730)=0.0133679,\\
+\delta_{h_2}&=\delta_o\,w_6\,h_2(1-h_2)=0.138499(0.45)(0.596884)(0.403116)=0.0149961.
+\end{align*}
+Weight gradients $\partial E/\partial w=\delta_h\,x$ (input at the tail):
+\[
+\begin{aligned}
+\pd{E}{w_1}&=\delta_{h_1}x_1=0.0006684, & \pd{E}{w_2}&=\delta_{h_1}x_2=0.0013368, & \pd{E}{b_{h_1}}&=\delta_{h_1}=0.013368,\\
+\pd{E}{w_3}&=\delta_{h_2}x_1=0.0007498, & \pd{E}{w_4}&=\delta_{h_2}x_2=0.0014996, & \pd{E}{b_{h_2}}&=\delta_{h_2}=0.014996.
+\end{aligned}
+\]
+
+\section{Step 4 --- Update the Parameters ($\eta=0.5$)}
+Apply $w\leftarrow w-\eta\,\partial E/\partial w$:
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}cccc|cccc@{}}
+\toprule
+Param & old & grad & new & Param & old & grad & new\\
+\midrule
+$w_1$ & $0.15$ & $0.000668$ & $0.149666$ & $w_5$ & $0.40$ & $0.082167$ & $0.358916$\\
+$w_2$ & $0.20$ & $0.001337$ & $0.199332$ & $w_6$ & $0.45$ & $0.082668$ & $0.408666$\\
+$w_3$ & $0.25$ & $0.000750$ & $0.249625$ & $b_{h_1}$ & $0.35$ & $0.013368$ & $0.343316$\\
+$w_4$ & $0.30$ & $0.001500$ & $0.299250$ & $b_{h_2}$ & $0.35$ & $0.014996$ & $0.342502$\\
+      &        &            &            & $b_o$ & $0.60$ & $0.138499$ & $0.530751$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Step 5 --- Verify the Loss Decreased}
+Running a forward pass with the updated weights gives a new output
+$o'=0.728352$ and
+\[
+E'=\tfrac12(0.728352-0.01)^2=0.258015\ <\ 0.274811=E.
+\]
+One backpropagation step reduced the error, exactly as gradient descent
+promises. Repeating the five steps drives $o$ toward the target $t=0.01$.
+
+\begin{remark}[Why the output weights changed far more than the input weights]
+$\partial E/\partial w_5\approx0.082$ but $\partial E/\partial w_1\approx0.0007$.
+The hidden gradients carry the extra factors $w_5\,h_1(1-h_1)$ and the tiny
+input $x_1=0.05$, shrinking them---an early glimpse of how gradients get smaller
+as we move back through the network (the vanishing-gradient effect).
+\end{remark}
+
+%==============================================================================
+\chapter{Practical Notes, Pros \& Cons, and Code}
+%==============================================================================
+
+\section{Practical Notes}
+\begin{itemize}[nosep]
+  \item \textbf{Weight initialization} matters: start small and random (e.g.\
+        Xavier/He) to break symmetry and avoid saturating activations.
+  \item \textbf{Learning rate} $\eta$ is the key hyperparameter: too large
+        diverges, too small crawls.
+  \item \textbf{Feature scaling} of inputs speeds convergence.
+  \item \textbf{Vanishing/exploding gradients} plague deep networks; ReLU,
+        normalization and residual connections help.
+\end{itemize}
+
+\section{Advantages and Disadvantages}
+\begin{center}
+\begin{tabular}{@{}p{6.4cm}p{6.4cm}@{}}
+\toprule
+\textbf{Advantages} & \textbf{Disadvantages}\\
+\midrule
+Computes all gradients in one backward pass ($\mathcal{O}$ of one forward pass).
+& Needs differentiable activations and loss.\\
+Exact gradients (not approximations). & Converges only to a local minimum; $E$ is
+non-convex.\\
+Scales to millions of parameters. & Sensitive to $\eta$, initialization,
+vanishing gradients.\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{From-Scratch Implementation (NumPy)}
+\begin{lstlisting}[style=python,caption={The worked example in NumPy.}]
+import numpy as np
+sig  = lambda z: 1/(1+np.exp(-z))
+dsig = lambda a: a*(1-a)              # sigma'(z) written in terms of a=sigma(z)
+
+x = np.array([[0.05],[0.10]]); t = np.array([[0.01]]); eta = 0.5
+W1 = np.array([[0.15,0.20],[0.25,0.30]]); b1 = np.array([[0.35],[0.35]])
+W2 = np.array([[0.40,0.45]]);             b2 = np.array([[0.60]])
+
+# forward
+a1 = sig(W1@x + b1)                  # hidden activations
+a2 = sig(W2@a1 + b2)                 # output
+E  = 0.5*np.sum((a2-t)**2)
+
+# backward
+d2 = (a2-t)*dsig(a2)                 # output error signal
+d1 = (W2.T@d2)*dsig(a1)              # hidden error signal
+gW2, gb2 = d2@a1.T, d2               # gradients
+gW1, gb1 = d1@x.T,  d1
+
+# update
+W2 -= eta*gW2; b2 -= eta*gb2
+W1 -= eta*gW1; b1 -= eta*gb1
+print("loss:", E)                    # 0.274811...
+\end{lstlisting}
+This reproduces the by-hand numbers: $\delta_o=0.1385$, updated
+$w_5=0.3589$, and so on.
+
+%==============================================================================
+\chapter{Exercises}
+%==============================================================================
+
+\section{Solved Problems}
+\begin{example}[Sigmoid derivative]
+If $a=\sigma(z)=0.75$, find $\sigma'(z)$.\\
+\textbf{Solution.} $\sigma'(z)=a(1-a)=0.75(0.25)=0.1875.$
+\end{example}
+\begin{example}[Output error signal]
+For an output $o=0.8$, target $t=1$, MSE loss, sigmoid: find $\delta_o$.\\
+\textbf{Solution.} $\delta_o=(o-t)o(1-o)=(-0.2)(0.8)(0.2)=-0.032.$
+\end{example}
+\begin{example}[Weight gradient]
+A neuron with error signal $\delta=0.05$ receives activation $a=0.6$ along a
+weight $w$. Find $\partial E/\partial w$ and the update for $\eta=0.1$.\\
+\textbf{Solution.} $\partial E/\partial w=\delta a=0.03$; $w\leftarrow w-0.1(0.03)=w-0.003.$
+\end{example}
+
+\section{Unsolved Problems}
+\begin{exercise}[Second iteration]
+Using the updated weights from Chapter~\ref{ch:worked}, perform a second forward
+and backward pass and confirm the loss decreases again.
+\end{exercise}
+\begin{exercise}[Two outputs]
+Extend the worked example to two output neurons with targets $(0.01,0.99)$ and
+derive $\delta_{o_1},\delta_{o_2}$.
+\end{exercise}
+\begin{exercise}[ReLU hidden layer]
+Redo Step~3 assuming the hidden neurons use ReLU instead of sigmoid. How does
+$\delta_h$ change when $z_h>0$?
+\end{exercise}
+\begin{exercise}[Chain rule]
+Starting from $E=\tfrac12(o-t)^2$ and $o=\sigma(z_o)$, derive
+$\partial E/\partial w_5=\delta_o h_1$ from first principles.
+\end{exercise}
+\begin{exercise}[Vanishing gradient]
+Show that if every $\sigma'(z)\le 0.25$ (true for sigmoid) and all $|w|\le 1$,
+then $|\delta^{l}|$ shrinks by at least a factor $4$ per layer going backward.
+\end{exercise}
+
+%==============================================================================
+\appendix
+\chapter{Notation Summary}
+%==============================================================================
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Symbol & Meaning\\
+\midrule
+$L$ & number of layers (output is layer $L$)\\
+$w^{l}_{jk}$ & weight from neuron $k$ (layer $l-1$) to neuron $j$ (layer $l$)\\
+$b^{l}_{j}$ & bias of neuron $j$ in layer $l$\\
+$z^{l}_{j}$ & net input (pre-activation) of neuron $j$ in layer $l$\\
+$a^{l}_{j}$ & activation $\sigma(z^{l}_{j})$; $a^{0}=x$ (inputs)\\
+$\sigma,\sigma'$ & activation function and its derivative\\
+$E$ & loss (error)\\
+$\delta^{l}_{j}=\partial E/\partial z^{l}_{j}$ & error signal of neuron $j$ in layer $l$\\
+$\eta$ & learning rate (a hyperparameter)\\
+$\odot$ & element-wise (Hadamard) product\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\end{document}
