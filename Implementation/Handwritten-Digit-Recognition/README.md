@@ -32,7 +32,7 @@ error (cross-entropy loss), compute how each weight should change
 |------|--------------|
 | `activations.py` | Activation functions as classes: `ReLU`, `Sigmoid`, `Softmax` (each bundles the function and its derivative). |
 | `neural_network.py` | The core. `DenseLayer` (one layer) and `NeuralNetwork` (the whole model): forward pass, **hand-written backprop**, training, prediction, save/load. |
-| `mnist_loader.py` | Downloads MNIST once and reads its binary format with the standard library + NumPy. |
+| `mnist_loader.py` | Reads the MNIST files **from your local `data/` folder** (never downloads) using the standard library + NumPy. |
 | `train.py` | Loads data, builds the network, trains it, prints accuracy, saves `model.npz`. |
 | `predict.py` | Loads `model.npz` and shows predictions for a few test images (drawn in the terminal). |
 | `sanity_check.py` | A fast, download-free test proving the backprop actually learns. |
@@ -55,7 +55,26 @@ error (cross-entropy loss), compute how each weight should change
 
    You should see the loss fall to almost zero and `SANITY CHECK PASSED`.
 
-3. **Train on MNIST** (downloads ~11 MB the first time):
+3. **Place the MNIST data locally** (one-time, done by *you* — the code never
+   downloads). Put the four files inside a sub-folder of `data/`:
+
+   ```
+   data/
+     MNIST/                          <- any sub-folder name works
+       train-images-idx3-ubyte.gz
+       train-labels-idx1-ubyte.gz
+       t10k-images-idx3-ubyte.gz
+       t10k-labels-idx1-ubyte.gz
+   ```
+
+   Both `.gz` and the uncompressed `idx-ubyte` files are accepted. The loader
+   auto-detects the sub-folder, so `data/MNIST/`, `data/Fashion/`, or the files
+   sitting directly in `data/` all work. If the files are missing, the program
+   stops with a clear message telling you exactly where to put them. (You can
+   obtain the files once from any MNIST mirror, e.g.
+   `https://storage.googleapis.com/cvdf-datasets/mnist/`.)
+
+4. **Train on MNIST**:
 
    ```bash
    python train.py
@@ -65,7 +84,7 @@ error (cross-entropy loss), compute how each weight should change
    reaches roughly **97–98% test accuracy**. It saves the weights to
    `model.npz`.
 
-4. **See it predict**:
+5. **See it predict**:
 
    ```bash
    python predict.py
