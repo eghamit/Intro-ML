@@ -443,19 +443,35 @@ so
 \end{equation}
 
 \section{Error Signal at a Hidden Layer (the Backward Recursion)}
-A hidden neuron $j$ in layer $l$ influences the loss through \emph{all} neurons
-$i$ of the next layer $l+1$ that it feeds. By the multivariate chain rule,
+\paragraph{The goal.} Recall the error signal $\delta^{l}_{j}=\pd{E}{z^{l}_{j}}$
+--- how much the loss changes if we nudge neuron $j$'s net input. For the
+\emph{output} layer this was immediate (equation~\eqref{eq:deltaLmse}); for a
+\emph{hidden} neuron, which never feeds the loss directly, we must work a little
+harder.
+
+\paragraph{The key idea: a hidden neuron affects the loss only through the next
+layer.} A hidden neuron $j$ in layer $l$ sends its activation
+$a^{l}_{j}=\varphi(z^{l}_{j})$ to \emph{all} neurons $i$ of the next layer $l+1$;
+it has no other route to the loss. So the multivariate chain rule adds up its
+effect through every one of them:
 \begin{equation}
 \delta^{l}_{j}=\pd{E}{z^{l}_{j}}
 =\sum_{i}\pd{E}{z^{l+1}_{i}}\,\pd{z^{l+1}_{i}}{z^{l}_{j}}
 =\sum_{i}\delta^{l+1}_{i}\,\pd{z^{l+1}_{i}}{z^{l}_{j}}.
 \label{eq:hid1}
 \end{equation}
-Now $z^{l+1}_{i}=\sum_{j}w^{l+1}_{ij}\,\varphi(z^{l}_{j})+b^{l+1}_{i}$, so
+The first factor $\pd{E}{z^{l+1}_{i}}$ is exactly $\delta^{l+1}_{i}$---an error
+signal we \emph{already computed} for the next layer, which is the reuse that
+makes backpropagation efficient.
+
+\paragraph{Working out the remaining piece.} We still need
+$\pd{z^{l+1}_{i}}{z^{l}_{j}}$. Since
+$z^{l+1}_{i}=\sum_{j}w^{l+1}_{ij}\,\varphi(z^{l}_{j})+b^{l+1}_{i}$, only the term
+containing $z^{l}_{j}$ survives and $\varphi$ differentiates to $\varphi'$, so
 \[
 \pd{z^{l+1}_{i}}{z^{l}_{j}}=w^{l+1}_{ij}\,\varphi'(z^{l}_{j}).
 \]
-Substituting,
+\paragraph{The result (the backward recursion).} Substituting,
 \begin{equation}
 \boxed{\ \delta^{l}_{j}=\Bigl(\sum_{i}w^{l+1}_{ij}\,\delta^{l+1}_{i}\Bigr)\,\varphi'(z^{l}_{j})\ }
 \label{eq:hid2}
@@ -477,7 +493,8 @@ meaning:
         saturated neuron ($\varphi'\approx0$) can barely change the output, so
         its error signal is tiny.
 \end{itemize}
-The recursion writes $\delta^{l}$ in terms of $\delta^{l+1}$, one layer nearer
+\paragraph{Why it is a recursion.} The formula writes $\delta^{l}$ in terms of
+$\delta^{l+1}$, one layer nearer
 the output. So we compute the output signal first
 (equation~\eqref{eq:deltaLmse}) and apply \eqref{eq:hid2} repeatedly to get
 $\delta^{L-1},\delta^{L-2},\dots$---marching \emph{backward} to the first layer.
