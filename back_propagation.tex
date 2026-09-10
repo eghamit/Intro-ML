@@ -465,6 +465,37 @@ weighted sum of the error signals it feeds, scaled by its own activation
 derivative.} Errors literally \emph{propagate backward} through the same weights
 used in the forward pass.
 
+\paragraph{How to read it.} The formula has two factors, each with a plain
+meaning:
+\begin{itemize}[nosep]
+  \item $\displaystyle\sum_{i}w^{l+1}_{ij}\,\delta^{l+1}_{i}$ --- gather the error
+        signals of the neurons this neuron feeds, each weighted by the very
+        connection $w^{l+1}_{ij}$ it sent forward. A neuron that pushed hard (a
+        large weight) on a badly-wrong neuron (a large $\delta$) inherits more of
+        the blame.
+  \item $\varphi'(z^{l}_{j})$ --- scale by this neuron's own activation slope. A
+        saturated neuron ($\varphi'\approx0$) can barely change the output, so
+        its error signal is tiny.
+\end{itemize}
+The recursion writes $\delta^{l}$ in terms of $\delta^{l+1}$, one layer nearer
+the output. So we compute the output signal first
+(equation~\eqref{eq:deltaLmse}) and apply \eqref{eq:hid2} repeatedly to get
+$\delta^{L-1},\delta^{L-2},\dots$---marching \emph{backward} to the first layer.
+That backward march is backpropagation; the rule \eqref{eq:gradw} then turns each
+$\delta$ into a weight gradient.
+
+\begin{example}[Computing one hidden error signal]
+A hidden neuron with sigmoid activation output $a=0.5$ (so its slope is
+$\varphi'=a(1-a)=0.25$) feeds two output neurons through weights $0.6$ and
+$-0.4$, whose error signals are $\delta_{1}=\delta_{2}=0.5$. Then
+\[
+\delta=\bigl(0.6(0.5)+(-0.4)(0.5)\bigr)\times 0.25
+      =(0.30-0.20)\times 0.25=0.10\times 0.25=0.025 .
+\]
+The weighted sum of downstream errors is $0.10$; the activation slope $0.25$
+shrinks it to the neuron's own error signal $0.025$.
+\end{example}
+
 \begin{figure}[ht]
 \centering
 \begin{tikzpicture}[>=Latex,neuron/.style={circle,draw,minimum size=9mm,thick},
