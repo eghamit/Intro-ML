@@ -456,7 +456,8 @@ it has no other route to the loss. So the multivariate chain rule adds up its
 effect through every one of them:
 \begin{equation}
 \delta^{l}_{j}=\pd{E}{z^{l}_{j}}
-=\sum_{i}\pd{E}{z^{l+1}_{i}}\,\pd{z^{l+1}_{i}}{z^{l}_{j}}
+=\sum_{i}\underbrace{\pd{E}{z^{l+1}_{i}}}_{=\,\delta^{l+1}_{i}}\,
+   \pd{z^{l+1}_{i}}{z^{l}_{j}}
 =\sum_{i}\delta^{l+1}_{i}\,\pd{z^{l+1}_{i}}{z^{l}_{j}}.
 \label{eq:hid1}
 \end{equation}
@@ -465,12 +466,24 @@ signal we \emph{already computed} for the next layer, which is the reuse that
 makes backpropagation efficient.
 
 \paragraph{Working out the remaining piece.} We still need
-$\pd{z^{l+1}_{i}}{z^{l}_{j}}$. Since
-$z^{l+1}_{i}=\sum_{j}w^{l+1}_{ij}\,\varphi(z^{l}_{j})+b^{l+1}_{i}$, only the term
-containing $z^{l}_{j}$ survives and $\varphi$ differentiates to $\varphi'$, so
-\[
-\pd{z^{l+1}_{i}}{z^{l}_{j}}=w^{l+1}_{ij}\,\varphi'(z^{l}_{j}).
-\]
+$\partial z^{l+1}_{i}/\partial z^{l}_{j}$. Recall that the next-layer net input
+is $z^{l+1}_{i}=\sum_{k}w^{l+1}_{ik}\,\varphi(z^{l}_{k})+b^{l+1}_{i}$ (we rename
+the summation index to $k$ to avoid clashing with our fixed $j$). It depends on
+$z^{l}_{j}$ only through the activation $\varphi(z^{l}_{j})$, so we differentiate
+term by term and apply the chain rule to each $\varphi(z^{l}_{k})$:
+\begin{align}
+\pd{z^{l+1}_{i}}{z^{l}_{j}}
+&=\pd{}{z^{l}_{j}}\!\left[\sum_{k}w^{l+1}_{ik}\,\varphi(z^{l}_{k})+b^{l+1}_{i}\right]
+ =\sum_{k}w^{l+1}_{ik}\,\varphi'(z^{l}_{k})\,\pd{z^{l}_{k}}{z^{l}_{j}}
+ \notag\\[2pt]
+&=w^{l+1}_{ij}\,\varphi'(z^{l}_{j}).
+\label{eq:dzdz}
+\end{align}
+Every term in the sum vanishes except the one with $k=j$, because the
+pre-activations of a layer are independent variables: $\partial z^{l}_{k}/\partial
+z^{l}_{j}=1$ when $k=j$ and $0$ otherwise. The bias $b^{l+1}_{i}$ is constant in
+$z^{l}_{j}$ and drops out. What survives is a single product---the forward weight
+$w^{l+1}_{ij}$ times this neuron's activation slope $\varphi'(z^{l}_{j})$.
 \paragraph{The result (the backward recursion).} Substituting,
 \begin{equation}
 \boxed{\ \delta^{l}_{j}=\Bigl(\sum_{i}w^{l+1}_{ij}\,\delta^{l+1}_{i}\Bigr)\,\varphi'(z^{l}_{j})\ }
