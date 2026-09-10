@@ -443,8 +443,11 @@ so
 \end{equation}
 
 \section{Error Signal at a Hidden Layer (the Backward Recursion)}
-\paragraph{The goal.} Recall the error signal $\delta^{l}_{j}=\pd{E}{z^{l}_{j}}$
---- how much the loss changes if we nudge neuron $j$'s net input. For the
+\paragraph{The goal.} Recall the error signal of a neuron,
+\[
+\delta^{l}_{j}=\pd{E}{z^{l}_{j}},
+\]
+which is how much the loss changes if we nudge neuron $j$'s net input. For the
 \emph{output} layer this was immediate (equation~\eqref{eq:deltaLmse}); for a
 \emph{hidden} neuron, which never feeds the loss directly, we must work a little
 harder.
@@ -466,11 +469,13 @@ signal we \emph{already computed} for the next layer, which is the reuse that
 makes backpropagation efficient.
 
 \paragraph{Working out the remaining piece.} We still need
-$\partial z^{l+1}_{i}/\partial z^{l}_{j}$. Recall that the next-layer net input
-is $z^{l+1}_{i}=\sum_{k}w^{l+1}_{ik}\,\varphi(z^{l}_{k})+b^{l+1}_{i}$ (we rename
-the summation index to $k$ to avoid clashing with our fixed $j$). It depends on
-$z^{l}_{j}$ only through the activation $\varphi(z^{l}_{j})$, so we differentiate
-term by term and apply the chain rule to each $\varphi(z^{l}_{k})$:
+$\partial z^{l+1}_{i}/\partial z^{l}_{j}$. Recall the next layer's net input:
+\[
+z^{l+1}_{i}=\sum_{k}w^{l+1}_{ik}\,\varphi(z^{l}_{k})+b^{l+1}_{i}
+\]
+(the summation index is renamed to $k$ to avoid clashing with the fixed $j$). It
+depends on $z^{l}_{j}$ only through the activation $\varphi(z^{l}_{j})$, so we
+differentiate term by term and apply the chain rule to each $\varphi(z^{l}_{k})$:
 \begin{align}
 \pd{z^{l+1}_{i}}{z^{l}_{j}}
 &=\pd{}{z^{l}_{j}}\!\left[\sum_{k}w^{l+1}_{ik}\,\varphi(z^{l}_{k})+b^{l+1}_{i}\right]
